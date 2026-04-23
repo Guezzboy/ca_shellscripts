@@ -1,0 +1,27 @@
+{
+  "id": "panini-fifa2026-v1",
+  "name": "Cartes Panini FIFA 2026",
+  "version": 1,
+  "items": [
+    {"id": "fifa-001", "name": "Kylian Mbappé", "number": "001", "description": "France - Attaquant", "image_url": ""},
+    {"id": "fifa-002", "name": "Erling Haaland", "number": "002", "description": "Norvège - Attaquant", "image_url": ""},
+    {"id": "fifa-003", "name": "Vinicius Jr.", "number": "003", "description": "Brésil - Attaquant", "image_url": ""},
+    {"id": "fifa-004", "name": "Rodri", "number": "004", "description": "Espagne - Milieu", "image_url": ""},
+    {"id": "fifa-005", "name": "Pedri", "number": "005", "description": "Espagne - Milieu", "image_url": ""},
+    {"id": "fifa-006", "name": "Jude Bellingham", "number": "006", "description": "Angleterre - Milieu", "image_url": ""},
+    {"id": "fifa-007", "name": "Phil Foden", "number": "007", "description": "Angleterre - Milieu", "image_url": ""},
+    {"id": "fifa-008", "name": "Lautaro Martínez", "number": "008", "description": "Argentine - Attaquant", "image_url": ""},
+    {"id": "fifa-009", "name": "Federico Valverde", "number": "009", "description": "Uruguay - Milieu", "image_url": ""},
+    {"id": "fifa-010", "name": "Florian Wirtz", "number": "010", "description": "Allemagne - Milieu", "image_url": ""},
+    {"id": "fifa-011", "name": "Gavi", "number": "011", "description": "Espagne - Milieu", "image_url": ""},
+    {"id": "fifa-012", "name": "Rafael Leão", "number": "012", "description": "Portugal - Attaquant", "image_url": ""},
+    {"id": "fifa-013", "name": "Bukayo Saka", "number": "013", "description": "Angleterre - Attaquant", "image_url": ""},
+    {"id": "fifa-014", "name": "Harry Kane", "number": "014", "description": "Angleterre - Attaquant", "image_url": ""},
+    {"id": "fifa-015", "name": "Virgil van Dijk", "number": "015", "description": "Pays-Bas - Défenseur", "image_url": ""},
+    {"id": "fifa-016", "name": "Manuel Neuer", "number": "016", "description": "Allemagne - Gardien", "image_url": ""},
+    {"id": "fifa-017", "name": "Thibaut Courtois", "number": "017", "description": "Belgique - Gardien", "image_url": ""},
+    {"id": "fifa-018", "name": "Julián Álvarez", "number": "018", "description": "Argentine - Attaquant", "image_url": ""},
+    {"id": "fifa-019", "name": "Neymar Jr.", "number": "019", "description": "Brésil - Attaquant", "image_url": ""},
+    {"id": "fifa-020", "name": "Antoine Griezmann", "number": "020", "description": "France - Attaquant", "image_url": ""}
+  ]
+}
