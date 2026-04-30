@@ -30,8 +30,9 @@ dependencies:
   # HTTP
   dio: ^5.4.3+1
 
-  # Image picker (Phase 2 - ready to use)
+  # Image picker (mobile) + file picker (desktop)
   image_picker: ^1.1.2
+  file_picker: ^8.0.0
 
   # Shared preferences
   shared_preferences: ^2.2.3

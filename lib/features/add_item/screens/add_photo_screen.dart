@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -17,14 +18,14 @@ class AddPhotoScreen extends ConsumerStatefulWidget {
 
 class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
   File? _imageFile;
-  String _detectedName = '';
-  String _detectedNumber = '';
-  bool _processing = false;
   bool _saving = false;
 
   final _nameController = TextEditingController();
   final _numberController = TextEditingController();
   final _picker = ImagePicker();
+
+  bool get _isDesktop =>
+      Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
   @override
   void dispose() {
@@ -42,95 +43,32 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image preview
             _buildImageZone(),
             const SizedBox(height: 16),
-
-            // Capture buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Appareil photo'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Galerie'),
-                  ),
-                ),
-              ],
-            ),
-
+            _buildCaptureButtons(),
             if (_imageFile != null) ...[
               const SizedBox(height: 20),
               const Divider(),
               const SizedBox(height: 8),
-              if (_processing)
-                const Center(
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 8),
-                      Text('Analyse de l\'image en cours...'),
-                    ],
-                  ),
-                )
-              else ...[
-                if (_detectedName.isNotEmpty)
-                  _buildDetectionResult(),
-                const SizedBox(height: 16),
-                _buildManualForm(),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _saving ? null : _saveItem,
-                  icon: _saving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.check),
-                  label: Text(_saving ? 'Ajout...' : 'Ajouter à la collection'),
-                ),
-              ],
-            ] else ...[
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.lightbulb_outline,
-                        color: Colors.blue.shade700, size: 28),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Astuce Phase 2',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'La reconnaissance automatique par OCR (Google ML Kit) '
-                      'sera activée dans la prochaine version. '
-                      'Pour l\'instant, saisissez le nom manuellement après avoir pris la photo.',
-                      textAlign: TextAlign.center,
-                      style:
-                          TextStyle(color: Colors.blue.shade700, fontSize: 13),
-                    ),
-                  ],
-                ),
+              _buildManualForm(),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _saving ? null : _saveItem,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.check),
+                label: Text(_saving ? 'Ajout...' : 'Ajouter à la collection'),
               ),
+            ] else ...[
+              const SizedBox(height: 16),
+              if (_isDesktop)
+                _buildDesktopNote()
+              else
+                _buildOcrNote(),
             ],
           ],
         ),
@@ -157,64 +95,39 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                 Icon(Icons.add_a_photo_outlined,
                     size: 48, color: Colors.brown.shade300),
                 const SizedBox(height: 8),
-                Text(
-                  'Aucune photo sélectionnée',
-                  style: TextStyle(color: Colors.brown.shade500),
-                ),
+                Text('Aucune image sélectionnée',
+                    style: TextStyle(color: Colors.brown.shade500)),
               ],
             ),
     );
   }
 
-  Widget _buildDetectionResult() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.ownedGreenLight,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.ownedGreen),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Résultat détection :',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 4),
-          Text('"$_detectedName"',
-              style: const TextStyle(fontSize: 15)),
-          if (_detectedNumber.isNotEmpty)
-            Text('Numéro : #$_detectedNumber',
-                style: const TextStyle(fontSize: 13)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  _nameController.text = _detectedName;
-                  _numberController.text = _detectedNumber;
-                },
-                icon: const Icon(Icons.check, size: 16),
-                label: const Text('Confirmer'),
-                style: ElevatedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor: AppTheme.ownedGreen,
-                ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () => setState(() {
-                  _detectedName = '';
-                  _detectedNumber = '';
-                }),
-                icon: const Icon(Icons.edit, size: 16),
-                label: const Text('Modifier'),
-                style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact),
-              ),
-            ],
+  Widget _buildCaptureButtons() {
+    if (_isDesktop) {
+      return ElevatedButton.icon(
+        onPressed: _pickFileDesktop,
+        icon: const Icon(Icons.folder_open),
+        label: const Text('Choisir une image depuis les fichiers'),
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _pickImageMobile(ImageSource.camera),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Appareil photo'),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _pickImageMobile(ImageSource.gallery),
+            icon: const Icon(Icons.photo_library),
+            label: const Text('Galerie'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -222,10 +135,8 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Informations de l\'item :',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        const Text('Informations de l\'item :',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         TextField(
           controller: _nameController,
@@ -247,25 +158,77 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
     );
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Widget _buildDesktopNote() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.blue.shade700),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Sur Linux desktop, sélectionne une image depuis tes fichiers. '
+              'L\'appareil photo est disponible sur Android.',
+              style: TextStyle(color: Colors.blue.shade800, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOcrNote() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_fix_high, color: Colors.orange.shade700),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Reconnaissance automatique (OCR) prévue en Phase 2. '
+              'Pour l\'instant, saisis le nom manuellement.',
+              style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickFileDesktop() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _imageFile = File(result.files.single.path!);
+        _nameController.clear();
+        _numberController.clear();
+      });
+    }
+  }
+
+  Future<void> _pickImageMobile(ImageSource source) async {
     final xfile = await _picker.pickImage(
         source: source, maxWidth: 1200, imageQuality: 85);
     if (xfile == null) return;
     setState(() {
       _imageFile = File(xfile.path);
-      _detectedName = '';
-      _detectedNumber = '';
       _nameController.clear();
       _numberController.clear();
     });
-
-    // Phase 2: run OCR here
-    // For now we skip auto-detection and let the user fill in manually.
-    // When google_mlkit_text_recognition is integrated:
-    //   final recognizer = TextRecognizer();
-    //   final inputImage = InputImage.fromFile(_imageFile!);
-    //   final result = await recognizer.processImage(inputImage);
-    //   _parseOcrResult(result.text);
   }
 
   Future<void> _saveItem() async {

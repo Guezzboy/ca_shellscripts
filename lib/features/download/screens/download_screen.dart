@@ -1,31 +1,37 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../core/services/collection_download_service.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../shared/theme/app_theme.dart';
 
-// Popular collections registry
 const _popularCollections = [
   (
     name: 'Verres Amora Disney',
     icon: '🍷',
-    url: 'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/amora_disney.json',
+    url:
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/amora_disney.json',
   ),
   (
     name: 'Cartes Panini FIFA 2026',
     icon: '⚽',
-    url: 'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/panini_fifa2026.json',
+    url:
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/panini_fifa2026.json',
   ),
   (
     name: 'Figurines Nintendo Smash',
     icon: '🎮',
-    url: 'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/nintendo_smash.json',
+    url:
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/nintendo_smash.json',
   ),
   (
     name: 'Cartes Magic The Gathering',
     icon: '🃏',
-    url: 'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/magic_mtg.json',
+    url:
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/magic_mtg.json',
   ),
 ];
 
@@ -59,42 +65,15 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Collections populaires
-            const Text(
-              'Collections populaires',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ...(_popularCollections.map((c) => Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: Text(c.icon,
-                        style: const TextStyle(fontSize: 24)),
-                    title: Text(c.name),
-                    subtitle: Text(
-                      c.url,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    trailing: TextButton(
-                      onPressed: _downloading
-                          ? null
-                          : () => _download(c.url, c.name),
-                      child: const Text('Télécharger'),
-                    ),
-                  ),
-                ))),
-
+            // ── Import fichier local ──────────────────────────────────────
+            _buildLocalImportCard(),
             const SizedBox(height: 20),
             const Divider(),
             const SizedBox(height: 12),
 
-            // Custom URL
-            const Text(
-              'URL personnalisée',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            // ── URL personnalisée ─────────────────────────────────────────
+            const Text('Depuis une URL',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             TextField(
               controller: _urlController,
@@ -115,64 +94,77 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.download),
-              label: Text(_downloading ? 'Téléchargement...' : 'Télécharger'),
+              label:
+                  Text(_downloading ? 'Téléchargement...' : 'Télécharger'),
             ),
 
+            // ── Collections populaires (nécessitent internet) ─────────────
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text('Collections populaires',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: Text('nécessite internet',
+                      style: TextStyle(
+                          fontSize: 10, color: Colors.orange.shade800)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...(_popularCollections.map((c) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading:
+                        Text(c.icon, style: const TextStyle(fontSize: 24)),
+                    title: Text(c.name),
+                    subtitle: Text(
+                      c.url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    trailing: TextButton(
+                      onPressed:
+                          _downloading ? null : () => _download(c.url, c.name),
+                      child: const Text('Télécharger'),
+                    ),
+                  ),
+                ))),
+
+            // ── Feedback ─────────────────────────────────────────────────
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error, color: Colors.red, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_errorMessage!,
-                          style: const TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              ),
+              _buildFeedback(
+                  _errorMessage!, Colors.red.shade50, Colors.red.shade200,
+                  icon: Icons.error, iconColor: Colors.red),
             ],
-
             if (_successMessage != null) ...[
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.ownedGreenLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.ownedGreen),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle,
-                        color: AppTheme.ownedGreen, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_successMessage!,
-                          style:
-                              const TextStyle(color: AppTheme.ownedGreen)),
-                    ),
-                  ],
-                ),
-              ),
+              _buildFeedback(_successMessage!, AppTheme.ownedGreenLight,
+                  AppTheme.ownedGreen,
+                  icon: Icons.check_circle,
+                  iconColor: AppTheme.ownedGreen,
+                  textColor: AppTheme.ownedGreen),
             ],
 
+            // ── Collections déjà importées ────────────────────────────────
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 12),
-
-            // Already downloaded
-            const Text(
-              'Collections téléchargées',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text('Collections importées',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             collectionsAsync.when(
               loading: () =>
@@ -180,10 +172,8 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
               error: (_, __) => const SizedBox.shrink(),
               data: (collections) {
                 if (collections.isEmpty) {
-                  return Text(
-                    'Aucune collection pour l\'instant.',
-                    style: TextStyle(color: Colors.brown.shade500),
-                  );
+                  return Text('Aucune collection pour l\'instant.',
+                      style: TextStyle(color: Colors.brown.shade500));
                 }
                 return Column(
                   children: collections
@@ -205,13 +195,139 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Format documentation
             _buildFormatDoc(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildLocalImportCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryBrown.withAlpha(12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.cardboardDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.folder_open, color: AppTheme.primaryBrown),
+              const SizedBox(width: 8),
+              const Text('Importer un fichier JSON local',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryBrown)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Sélectionne un fichier .json sur ton ordinateur. '
+            'Les fichiers de démo sont dans le dossier sample_data/ du projet.',
+            style: TextStyle(fontSize: 13, color: Colors.brown.shade700),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _downloading ? null : _importFromFile,
+            icon: const Icon(Icons.upload_file),
+            label: const Text('Choisir un fichier JSON'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedback(String message, Color bg, Color border,
+      {required IconData icon,
+      required Color iconColor,
+      Color? textColor}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(message,
+                  style: TextStyle(color: textColor ?? iconColor))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormatDoc() {
+    return ExpansionTile(
+      title: const Text('Format JSON attendu',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8)),
+          child: const SelectableText(
+            '{\n'
+            '  "name": "Ma Collection",\n'
+            '  "version": 1,\n'
+            '  "items": [\n'
+            '    {\n'
+            '      "id": "item-001",\n'
+            '      "name": "Mickey Mouse",\n'
+            '      "number": "001",\n'
+            '      "image_url": "https://..."\n'
+            '    }\n'
+            '  ]\n'
+            '}',
+            style: TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Future<void> _importFromFile() async {
+    setState(() {
+      _downloading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        allowMultiple: false,
+      );
+      if (result == null || result.files.single.path == null) {
+        setState(() => _downloading = false);
+        return;
+      }
+      final content =
+          await File(result.files.single.path!).readAsString();
+      final data = json.decode(content) as Map<String, dynamic>;
+      final service = CollectionDownloadService();
+      final imported = await service.importJson(data);
+      await ref.read(collectionsProvider.notifier).refresh();
+      if (mounted) {
+        setState(() => _successMessage =
+            'Importé : ${imported.itemCount} items ajoutés.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorMessage = 'Erreur : ${e.toString()}');
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
   }
 
   Future<void> _downloadFromUrl() async {
@@ -245,40 +361,5 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
     } finally {
       if (mounted) setState(() => _downloading = false);
     }
-  }
-
-  Widget _buildFormatDoc() {
-    return ExpansionTile(
-      title: const Text(
-        'Format JSON attendu',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const SelectableText(
-            '{\n'
-            '  "name": "Ma Collection",\n'
-            '  "version": 1,\n'
-            '  "items": [\n'
-            '    {\n'
-            '      "id": "item-001",\n'
-            '      "name": "Mickey Mouse",\n'
-            '      "number": "001",\n'
-            '      "description": "...",\n'
-            '      "image_url": "https://..."\n'
-            '    }\n'
-            '  ]\n'
-            '}',
-            style: TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
   }
 }
