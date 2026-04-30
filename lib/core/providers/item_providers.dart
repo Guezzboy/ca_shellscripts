@@ -5,6 +5,7 @@ import '../repositories/owned_item_repository.dart';
 import '../repositories/custom_item_repository.dart';
 import '../repositories/collection_repository.dart';
 import 'repository_providers.dart';
+import 'collection_providers.dart';
 
 // Items for a given collection (base + custom, with owned status)
 final collectionItemsProvider =
