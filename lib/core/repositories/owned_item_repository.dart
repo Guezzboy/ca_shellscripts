@@ -29,6 +29,19 @@ class OwnedItemRepository {
         where: 'id = ?', whereArgs: [ownedRecordId]);
   }
 
+  Future<String?> loadNote(String ownedRecordId) async {
+    final db = await _db;
+    final rows = await db.query('owned_items',
+        columns: ['notes'], where: 'id = ?', whereArgs: [ownedRecordId]);
+    return rows.isEmpty ? null : rows.first['notes'] as String?;
+  }
+
+  Future<void> saveNote(String ownedRecordId, String note) async {
+    final db = await _db;
+    await db.update('owned_items', {'notes': note},
+        where: 'id = ?', whereArgs: [ownedRecordId]);
+  }
+
   Future<int> countOwned(String collectionId) async {
     final db = await _db;
     final base = Sqflite.firstIntValue(await db.rawQuery(

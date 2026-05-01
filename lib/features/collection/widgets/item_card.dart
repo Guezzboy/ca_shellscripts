@@ -1,20 +1,55 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/models/display_item.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class ItemCard extends StatefulWidget {
   final DisplayItem item;
   final VoidCallback onTap;
+  final VoidCallback onToggleOwned;
 
-  const ItemCard({super.key, required this.item, required this.onTap});
+  const ItemCard({
+    super.key,
+    required this.item,
+    required this.onTap,
+    required this.onToggleOwned,
+  });
 
   @override
   State<ItemCard> createState() => _ItemCardState();
 }
 
-class _ItemCardState extends State<ItemCard> {
+class _ItemCardState extends State<ItemCard>
+    with SingleTickerProviderStateMixin {
   int _photoIndex = 0;
+  late final AnimationController _flashCtrl;
+  late final Animation<double> _flashOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _flashCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _flashOpacity = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.4), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 0.4, end: 0.0), weight: 80),
+    ]).animate(CurvedAnimation(parent: _flashCtrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _flashCtrl.dispose();
+    super.dispose();
+  }
+
+  void _quickToggle() {
+    HapticFeedback.mediumImpact();
+    _flashCtrl.forward(from: 0);
+    widget.onToggleOwned();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +58,7 @@ class _ItemCardState extends State<ItemCard> {
 
     return GestureDetector(
       onTap: widget.onTap,
+      onLongPress: _quickToggle,
       onHorizontalDragEnd: hasMultiplePhotos
           ? (d) => setState(() {
                 final v = d.primaryVelocity ?? 0;
@@ -32,146 +68,198 @@ class _ItemCardState extends State<ItemCard> {
                         item.imagePaths.length;
               })
           : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: item.owned ? AppTheme.ownedLight : AppTheme.surface,
-          border: Border(
-            left: BorderSide(
-              color: item.owned ? AppTheme.owned : AppTheme.border,
-              width: item.owned ? 3 : 1,
-            ),
-            top: const BorderSide(color: AppTheme.border),
-            right: const BorderSide(color: AppTheme.border),
-            bottom: const BorderSide(color: AppTheme.border),
-          ),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: AnimatedBuilder(
+        animation: _flashOpacity,
+        builder: (context, child) => Stack(
+          fit: StackFit.expand,
           children: [
-            // Image zone
-            Expanded(
-              flex: 5,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(3)),
-                    child: _buildImage(item),
+            child!,
+            if (_flashOpacity.value > 0)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.owned.withOpacity(_flashOpacity.value),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  // Number badge
-                  if (item.number != null)
-                    Positioned(
-                      top: 4,
-                      left: 5,
-                      child: Text(
-                        item.number!,
-                        style: const TextStyle(
-                          color: AppTheme.numberRed,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
+                ),
+              ),
+          ],
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            border: Border.all(color: AppTheme.border),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Image zone
+              Expanded(
+                flex: 5,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(3)),
+                      child: _buildImage(item),
+                    ),
+                    // Number badge (top-left)
+                    if (item.number != null)
+                      Positioned(
+                        top: 4,
+                        left: 5,
+                        child: Text(
+                          item.number!,
+                          style: const TextStyle(
+                            color: AppTheme.numberRed,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
-                    ),
-                  // Owned check
-                  if (item.owned)
+                    // Quick-toggle icon (top-right, always visible)
                     Positioned(
                       top: 3,
-                      right: 4,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.owned,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.check,
-                            color: Colors.white, size: 10),
-                      ),
-                    ),
-                  // Rare star badge
-                  if (item.isRare)
-                    const Positioned(
-                      bottom: 4,
-                      right: 4,
-                      child: Text('⭐', style: TextStyle(fontSize: 10)),
-                    ),
-                  // Photo counter dots
-                  if (hasMultiplePhotos)
-                    Positioned(
-                      bottom: 4,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          item.imagePaths.length,
-                          (i) => Container(
-                            width: i == _photoIndex ? 6 : 4,
-                            height: i == _photoIndex ? 6 : 4,
-                            margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: i == _photoIndex
-                                  ? Colors.white
-                                  : Colors.white54,
-                            ),
+                      right: 3,
+                      child: GestureDetector(
+                        onTap: _quickToggle,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: item.owned
+                                ? AppTheme.owned
+                                : Colors.black.withOpacity(0.30),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            item.owned ? Icons.check : Icons.add,
+                            color: Colors.white,
+                            size: 11,
                           ),
                         ),
                       ),
                     ),
-                ],
+                    // Owned badge (bottom-right of image)
+                    if (item.owned)
+                      Positioned(
+                        bottom: 5,
+                        right: 5,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: AppTheme.owned,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white, width: 1.5),
+                          ),
+                          child: const Icon(Icons.check,
+                              color: Colors.white, size: 11),
+                        ),
+                      ),
+                    // Rare star (bottom-left)
+                    if (item.isRare)
+                      const Positioned(
+                        bottom: 4,
+                        left: 4,
+                        child: Text('⭐', style: TextStyle(fontSize: 10)),
+                      ),
+                    // Photo dots (bottom-center)
+                    if (hasMultiplePhotos)
+                      Positioned(
+                        bottom: 4,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            item.imagePaths.length,
+                            (i) => Container(
+                              width: i == _photoIndex ? 6 : 4,
+                              height: i == _photoIndex ? 6 : 4,
+                              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: i == _photoIndex
+                                    ? Colors.white
+                                    : Colors.white54,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            // Separator
-            Container(height: 1, color: AppTheme.border),
-            // Name zone
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(5, 4, 5, 4),
-                child: Center(
-                  child: Text(
-                    item.name,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w600,
-                      color: item.owned
-                          ? AppTheme.textPrimary
-                          : AppTheme.textSecondary,
-                      height: 1.2,
+              // Separator
+              Container(height: 1, color: AppTheme.border),
+              // Name zone
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(5, 4, 5, 4),
+                  child: Center(
+                    child: Text(
+                      item.name,
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: item.owned
+                            ? AppTheme.textPrimary
+                            : AppTheme.textSecondary,
+                        height: 1.2,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildImage(DisplayItem item) {
+    Widget img;
     if (item.imagePaths.isNotEmpty) {
-      return Image.file(File(item.imagePaths[_photoIndex]),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder());
-    }
-    if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
-      return Image.network(
+      img = Image.file(
+        File(item.imagePaths[_photoIndex]),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    } else if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
+      img = Image.network(
         item.imageUrl!,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _placeholder(),
         loadingBuilder: (_, child, progress) =>
             progress == null ? child : _loading(progress),
       );
+    } else {
+      return _placeholder();
     }
-    return _placeholder();
+
+    if (!item.owned) {
+      img = ColorFiltered(
+        colorFilter: const ColorFilter.matrix([
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0,      0,      0,      1, 0,
+        ]),
+        child: img,
+      );
+    }
+
+    return img;
   }
 
   Widget _placeholder() => Container(
@@ -186,8 +274,7 @@ class _ItemCardState extends State<ItemCard> {
           child: CircularProgressIndicator(
             strokeWidth: 1.5,
             value: progress.expectedTotalBytes != null
-                ? progress.cumulativeBytesLoaded /
-                    progress.expectedTotalBytes!
+                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
                 : null,
             color: AppTheme.textSecondary,
           ),

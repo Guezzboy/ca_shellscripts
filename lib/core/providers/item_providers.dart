@@ -53,6 +53,15 @@ class CollectionItemsNotifier
     ref.invalidate(ownedCountProvider(arg));
   }
 
+  Future<void> deleteCustomItem(String itemId) async {
+    final customRepo = ref.read(customItemRepositoryProvider);
+    final collectionRepo = ref.read(collectionRepositoryProvider);
+    await customRepo.delete(itemId);
+    await collectionRepo.updateItemCount(arg);
+    ref.invalidateSelf();
+    ref.invalidate(ownedCountProvider(arg));
+  }
+
   Future<void> refresh() async {
     ref.invalidateSelf();
   }

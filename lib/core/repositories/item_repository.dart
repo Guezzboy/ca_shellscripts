@@ -85,12 +85,11 @@ class ItemRepository {
     ''', [collectionId, collectionId]);
 
     final baseItems = baseRows.map((row) {
-      bool isRare = false;
+      Map<String, dynamic>? meta;
       final metaRaw = row['metadata'] as String?;
       if (metaRaw != null && metaRaw.isNotEmpty) {
         try {
-          final meta = json.decode(metaRaw) as Map<String, dynamic>;
-          isRare = (meta['rare'] as bool?) ?? false;
+          meta = json.decode(metaRaw) as Map<String, dynamic>;
         } catch (_) {}
       }
       return DisplayItem(
@@ -100,7 +99,8 @@ class ItemRepository {
         imageUrl: row['image_url'] as String?,
         owned: row['owned_record_id'] != null,
         isCustom: false,
-        isRare: isRare,
+        isRare: (meta?['rare'] as bool?) ?? false,
+        metadata: meta,
         ownedRecordId: row['owned_record_id'] as String?,
       );
     });

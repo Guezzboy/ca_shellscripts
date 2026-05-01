@@ -6,6 +6,7 @@ import '../../../core/providers/item_providers.dart';
 import '../../../core/models/display_item.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../widgets/item_card.dart';
+import 'item_detail_screen.dart';
 
 enum _Filter { all, owned, missing }
 
@@ -113,7 +114,12 @@ class _CollectionDetailScreenState
               itemCount: filtered.length,
               itemBuilder: (_, i) => ItemCard(
                 item: filtered[i],
-                onTap: () => _onItemTap(filtered[i]),
+                onTap: () => showItemDetail(
+                    context, filtered[i], widget.collectionId),
+                onToggleOwned: () => ref
+                    .read(collectionItemsProvider(widget.collectionId)
+                        .notifier)
+                    .toggleOwned(filtered[i]),
               ),
             );
           },
@@ -281,50 +287,6 @@ class _CollectionDetailScreenState
     };
   }
 
-  Future<void> _onItemTap(DisplayItem item) async {
-    if (item.isCustom) {
-      _showCustomOptions(item);
-      return;
-    }
-    await ref
-        .read(collectionItemsProvider(widget.collectionId).notifier)
-        .toggleOwned(item);
-  }
-
-  void _showCustomOptions(DisplayItem item) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                  color: AppTheme.border,
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            ListTile(
-              title: Text(item.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: item.number != null
-                  ? Text('N° ${item.number}')
-                  : null,
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading:
-                  const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Supprimer',
-                  style: TextStyle(color: Colors.red)),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _FilterChip extends StatelessWidget {
