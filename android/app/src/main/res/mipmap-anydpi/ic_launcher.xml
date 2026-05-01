@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon: brown background + white bookmark symbol -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape>
+            <solid android:color="#5C4033"/>
+        </shape>
+    </item>
+    <!-- White rounded rect (card shape) -->
+    <item android:left="18dp" android:right="18dp"
+          android:top="16dp" android:bottom="20dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF"/>
+            <corners android:radius="6dp"/>
+        </shape>
+    </item>
+    <!-- Brown inner card lines (Panini style) -->
+    <item android:left="22dp" android:right="22dp"
+          android:top="32dp" android:bottom="36dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#5C4033"/>
+            <corners android:radius="2dp"/>
+        </shape>
+    </item>
+    <item android:left="22dp" android:right="22dp"
+          android:top="42dp" android:bottom="48dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#D4B896"/>
+            <corners android:radius="2dp"/>
+        </shape>
+    </item>
+</layer-list>
