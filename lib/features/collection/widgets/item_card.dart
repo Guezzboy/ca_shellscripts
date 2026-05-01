@@ -3,16 +3,39 @@ import 'package:flutter/material.dart';
 import '../../../core/models/display_item.dart';
 import '../../../shared/theme/app_theme.dart';
 
-class ItemCard extends StatelessWidget {
+class ItemCard extends StatefulWidget {
   final DisplayItem item;
   final VoidCallback onTap;
 
   const ItemCard({super.key, required this.item, required this.onTap});
 
   @override
+  State<ItemCard> createState() => _ItemCardState();
+}
+
+class _ItemCardState extends State<ItemCard> {
+  int _photoIndex = 0;
+
+  @override
   Widget build(BuildContext context) {
+    final item = widget.item;
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
+      // Swipe left/right to browse photos
+      onHorizontalDragEnd: item.imagePaths.length > 1
+          ? (details) {
+              if (details.primaryVelocity == null) return;
+              setState(() {
+                if (details.primaryVelocity! < 0) {
+                  _photoIndex =
+                      (_photoIndex + 1) % item.imagePaths.length;
+                } else {
+                  _photoIndex = (_photoIndex - 1 + item.imagePaths.length) %
+                      item.imagePaths.length;
+                }
+              });
+            }
+          : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
@@ -42,7 +65,8 @@ class ItemCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _buildImage(),
+                    _buildImage(item),
+                    // Owned badge
                     if (item.owned)
                       Positioned(
                         top: 4,
@@ -57,6 +81,7 @@ class ItemCard extends StatelessWidget {
                               color: Colors.white, size: 12),
                         ),
                       ),
+                    // Custom badge
                     if (item.isCustom)
                       Positioned(
                         top: 4,
@@ -68,12 +93,29 @@ class ItemCard extends StatelessWidget {
                             color: Colors.blue.shade700,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
-                            'PERSO',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold),
+                          child: const Text('PERSO',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    // Multiple photos indicator
+                    if (item.imagePaths.length > 1)
+                      Positioned(
+                        bottom: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${_photoIndex + 1}/${item.imagePaths.length}',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 9),
                           ),
                         ),
                       ),
@@ -81,11 +123,10 @@ class ItemCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Divider bar (Panini style)
+            // Panini divider bar
             Container(
               height: 3,
-              color:
-                  item.owned ? AppTheme.ownedGreen : Colors.brown.shade300,
+              color: item.owned ? AppTheme.ownedGreen : Colors.brown.shade300,
             ),
             // Info zone
             Expanded(
@@ -111,9 +152,7 @@ class ItemCard extends StatelessWidget {
                       Text(
                         '#${item.number}',
                         style: TextStyle(
-                          fontSize: 9,
-                          color: Colors.brown.shade500,
-                        ),
+                            fontSize: 9, color: Colors.brown.shade500),
                       ),
                   ],
                 ),
@@ -125,15 +164,17 @@ class ItemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImage() {
-    if (item.imagePath != null) {
+  Widget _buildImage(DisplayItem item) {
+    // Custom item with local photos
+    if (item.imagePaths.isNotEmpty) {
       return Image.file(
-        File(item.imagePath!),
+        File(item.imagePaths[_photoIndex]),
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _placeholder(),
       );
     }
-    if (item.imageUrl != null) {
+    // Base item with network image
+    if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
       return Image.network(
         item.imageUrl!,
         fit: BoxFit.cover,
@@ -159,11 +200,8 @@ class ItemCard extends StatelessWidget {
   Widget _placeholder() {
     return Container(
       color: Colors.brown.shade100,
-      child: Icon(
-        Icons.image_outlined,
-        size: 32,
-        color: Colors.brown.shade300,
-      ),
+      child: Icon(Icons.image_outlined,
+          size: 32, color: Colors.brown.shade300),
     );
   }
 }

@@ -17,7 +17,7 @@ class AddPhotoScreen extends ConsumerStatefulWidget {
 }
 
 class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
-  File? _imageFile;
+  final List<String> _imagePaths = [];
   bool _saving = false;
 
   final _nameController = TextEditingController();
@@ -43,14 +43,18 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildImageZone(),
-            const SizedBox(height: 16),
-            _buildCaptureButtons(),
-            if (_imageFile != null) ...[
+            // Photo gallery
+            _buildPhotoGallery(),
+            const SizedBox(height: 12),
+
+            // Add photo button(s)
+            _buildAddPhotoButtons(),
+
+            if (_imagePaths.isNotEmpty) ...[
               const SizedBox(height: 20),
               const Divider(),
               const SizedBox(height: 8),
-              _buildManualForm(),
+              _buildForm(),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _saving ? null : _saveItem,
@@ -65,10 +69,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
               ),
             ] else ...[
               const SizedBox(height: 16),
-              if (_isDesktop)
-                _buildDesktopNote()
-              else
-                _buildOcrNote(),
+              _buildHint(),
             ],
           ],
         ),
@@ -76,38 +77,99 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
     );
   }
 
-  Widget _buildImageZone() {
-    return Container(
-      height: 220,
-      decoration: BoxDecoration(
-        color: Colors.brown.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.brown.shade300),
+  // ── Photo gallery ─────────────────────────────────────────────────────────
+
+  Widget _buildPhotoGallery() {
+    if (_imagePaths.isEmpty) {
+      return Container(
+        height: 180,
+        decoration: BoxDecoration(
+          color: Colors.brown.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.brown.shade300),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_a_photo_outlined,
+                size: 48, color: Colors.brown.shade300),
+            const SizedBox(height: 8),
+            Text('Aucune photo',
+                style: TextStyle(color: Colors.brown.shade500)),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 180,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _imagePaths.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) => _buildPhotoThumbnail(index),
       ),
-      child: _imageFile != null
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(11),
-              child: Image.file(_imageFile!, fit: BoxFit.contain),
-            )
-          : Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_a_photo_outlined,
-                    size: 48, color: Colors.brown.shade300),
-                const SizedBox(height: 8),
-                Text('Aucune image sélectionnée',
-                    style: TextStyle(color: Colors.brown.shade500)),
-              ],
-            ),
     );
   }
 
-  Widget _buildCaptureButtons() {
+  Widget _buildPhotoThumbnail(int index) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.file(
+            File(_imagePaths[index]),
+            width: 160,
+            height: 180,
+            fit: BoxFit.cover,
+          ),
+        ),
+        // Photo number badge
+        Positioned(
+          top: 6,
+          left: 6,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '${index + 1}/${_imagePaths.length}',
+              style: const TextStyle(color: Colors.white, fontSize: 11),
+            ),
+          ),
+        ),
+        // Remove button
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () => setState(() => _imagePaths.removeAt(index)),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Add photo buttons ─────────────────────────────────────────────────────
+
+  Widget _buildAddPhotoButtons() {
     if (_isDesktop) {
-      return ElevatedButton.icon(
+      return OutlinedButton.icon(
         onPressed: _pickFileDesktop,
-        icon: const Icon(Icons.folder_open),
-        label: const Text('Choisir une image depuis les fichiers'),
+        icon: const Icon(Icons.add_photo_alternate),
+        label: Text(_imagePaths.isEmpty
+            ? 'Choisir des images'
+            : 'Ajouter une autre photo'),
       );
     }
     return Row(
@@ -116,7 +178,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
           child: OutlinedButton.icon(
             onPressed: () => _pickImageMobile(ImageSource.camera),
             icon: const Icon(Icons.camera_alt),
-            label: const Text('Appareil photo'),
+            label: Text(_imagePaths.isEmpty ? 'Photo' : '+ Photo'),
           ),
         ),
         const SizedBox(width: 8),
@@ -124,20 +186,31 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
           child: OutlinedButton.icon(
             onPressed: () => _pickImageMobile(ImageSource.gallery),
             icon: const Icon(Icons.photo_library),
-            label: const Text('Galerie'),
+            label: Text(_imagePaths.isEmpty ? 'Galerie' : '+ Galerie'),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildManualForm() {
+  // ── Form ─────────────────────────────────────────────────────────────────
+
+  Widget _buildForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Informations de l\'item :',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
+        Row(
+          children: [
+            const Icon(Icons.photo_library, size: 16, color: AppTheme.primaryBrown),
+            const SizedBox(width: 6),
+            Text(
+              '${_imagePaths.length} photo${_imagePaths.length > 1 ? "s" : ""}',
+              style: const TextStyle(
+                  color: AppTheme.primaryBrown, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         TextField(
           controller: _nameController,
           decoration: const InputDecoration(
@@ -158,7 +231,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
     );
   }
 
-  Widget _buildDesktopNote() {
+  Widget _buildHint() {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -172,8 +245,9 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Sur Linux desktop, sélectionne une image depuis tes fichiers. '
-              'L\'appareil photo est disponible sur Android.',
+              _isDesktop
+                  ? 'Sélectionne une ou plusieurs images depuis tes fichiers.'
+                  : 'Tu peux prendre plusieurs photos du même verre (face, dos, détail…).',
               style: TextStyle(color: Colors.blue.shade800, fontSize: 13),
             ),
           ),
@@ -182,54 +256,38 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
     );
   }
 
-  Widget _buildOcrNote() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orange.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.auto_fix_high, color: Colors.orange.shade700),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Reconnaissance automatique (OCR) prévue en Phase 2. '
-              'Pour l\'instant, saisis le nom manuellement.',
-              style: TextStyle(color: Colors.orange.shade800, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // ── Pickers ───────────────────────────────────────────────────────────────
 
   Future<void> _pickFileDesktop() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
-      allowMultiple: false,
+      allowMultiple: true,
     );
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _imageFile = File(result.files.single.path!);
-        _nameController.clear();
-        _numberController.clear();
-      });
+    if (result != null) {
+      final paths =
+          result.files.map((f) => f.path).whereType<String>().toList();
+      setState(() => _imagePaths.addAll(paths));
     }
   }
 
   Future<void> _pickImageMobile(ImageSource source) async {
-    final xfile = await _picker.pickImage(
-        source: source, maxWidth: 1200, imageQuality: 85);
-    if (xfile == null) return;
-    setState(() {
-      _imageFile = File(xfile.path);
-      _nameController.clear();
-      _numberController.clear();
-    });
+    if (source == ImageSource.gallery) {
+      // image_picker supports multiple from gallery
+      final files = await _picker.pickMultiImage(
+          maxWidth: 1200, imageQuality: 85);
+      if (files.isNotEmpty) {
+        setState(() => _imagePaths.addAll(files.map((f) => f.path)));
+      }
+    } else {
+      final xfile = await _picker.pickImage(
+          source: source, maxWidth: 1200, imageQuality: 85);
+      if (xfile != null) {
+        setState(() => _imagePaths.add(xfile.path));
+      }
+    }
   }
+
+  // ── Save ──────────────────────────────────────────────────────────────────
 
   Future<void> _saveItem() async {
     final name = _nameController.text.trim();
@@ -248,12 +306,14 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
             number: _numberController.text.trim().isEmpty
                 ? null
                 : _numberController.text.trim(),
-            imagePath: _imageFile?.path,
+            imagePaths: List.unmodifiable(_imagePaths),
             source: 'photo',
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('"$name" ajouté avec photo.')),
+          SnackBar(
+              content: Text(
+                  '"$name" ajouté avec ${_imagePaths.length} photo(s).')),
         );
         context.pop();
       }

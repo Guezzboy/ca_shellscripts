@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import '../database/database_helper.dart';
@@ -101,14 +102,25 @@ class ItemRepository {
       ORDER BY created_at ASC
     ''', [collectionId]);
 
-    final customItems = customRows.map((row) => DisplayItem(
-          id: row['id'] as String,
-          name: row['name'] as String,
-          number: row['number'] as String?,
-          imagePath: row['image_path'] as String?,
-          owned: true,
-          isCustom: true,
-        ));
+    final customItems = customRows.map((row) {
+      final rawPath = row['image_path'] as String?;
+      List<String> paths = [];
+      if (rawPath != null && rawPath.isNotEmpty) {
+        try {
+          paths = (json.decode(rawPath) as List<dynamic>).cast<String>();
+        } catch (_) {
+          paths = [rawPath];
+        }
+      }
+      return DisplayItem(
+        id: row['id'] as String,
+        name: row['name'] as String,
+        number: row['number'] as String?,
+        imagePaths: paths,
+        owned: true,
+        isCustom: true,
+      );
+    });
 
     return [...baseItems, ...customItems];
   }

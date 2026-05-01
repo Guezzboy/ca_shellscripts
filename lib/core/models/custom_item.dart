@@ -1,10 +1,12 @@
+import 'dart:convert';
+
 class CustomItem {
   final String id;
   final String name;
   final String? number;
   final String collectionId;
-  final String? imagePath;
-  final String source; // 'photo' | 'manual' | 'import'
+  final List<String> imagePaths;
+  final String source;
   final int createdAt;
 
   const CustomItem({
@@ -12,7 +14,7 @@ class CustomItem {
     required this.name,
     this.number,
     required this.collectionId,
-    this.imagePath,
+    this.imagePaths = const [],
     required this.source,
     required this.createdAt,
   });
@@ -22,7 +24,7 @@ class CustomItem {
         'name': name,
         'number': number,
         'collection_id': collectionId,
-        'image_path': imagePath,
+        'image_path': imagePaths.isEmpty ? null : json.encode(imagePaths),
         'source': source,
         'created_at': createdAt,
       };
@@ -32,8 +34,17 @@ class CustomItem {
         name: map['name'] as String,
         number: map['number'] as String?,
         collectionId: map['collection_id'] as String,
-        imagePath: map['image_path'] as String?,
+        imagePaths: _parsePaths(map['image_path'] as String?),
         source: map['source'] as String,
         createdAt: map['created_at'] as int,
       );
+
+  static List<String> _parsePaths(String? raw) {
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      return (json.decode(raw) as List<dynamic>).cast<String>();
+    } catch (_) {
+      return [raw]; // backward compat: single path stored as plain string
+    }
+  }
 }

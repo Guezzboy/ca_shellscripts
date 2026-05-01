@@ -36,7 +36,7 @@ class CollectionItemsNotifier
   Future<void> addCustomItem({
     required String name,
     String? number,
-    String? imagePath,
+    List<String> imagePaths = const [],
     required String source,
   }) async {
     final customRepo = ref.read(customItemRepositoryProvider);
@@ -45,7 +45,7 @@ class CollectionItemsNotifier
       name: name,
       number: number,
       collectionId: arg,
-      imagePath: imagePath,
+      imagePaths: imagePaths,
       source: source,
     );
     await collectionRepo.updateItemCount(arg);
