@@ -201,12 +201,12 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.photo_library, size: 16, color: AppTheme.primaryBrown),
+            const Icon(Icons.photo_library, size: 16, color: AppTheme.primary),
             const SizedBox(width: 6),
             Text(
               '${_imagePaths.length} photo${_imagePaths.length > 1 ? "s" : ""}',
               style: const TextStyle(
-                  color: AppTheme.primaryBrown, fontWeight: FontWeight.w600),
+                  color: AppTheme.primary, fontWeight: FontWeight.w600),
             ),
           ],
         ),

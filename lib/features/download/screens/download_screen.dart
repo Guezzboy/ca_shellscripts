@@ -152,11 +152,11 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
             ],
             if (_successMessage != null) ...[
               const SizedBox(height: 12),
-              _buildFeedback(_successMessage!, AppTheme.ownedGreenLight,
-                  AppTheme.ownedGreen,
+              _buildFeedback(_successMessage!, AppTheme.ownedLight,
+                  AppTheme.owned,
                   icon: Icons.check_circle,
-                  iconColor: AppTheme.ownedGreen,
-                  textColor: AppTheme.ownedGreen),
+                  iconColor: AppTheme.owned,
+                  textColor: AppTheme.owned),
             ],
 
             // ── Collections déjà importées ────────────────────────────────
@@ -179,7 +179,7 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                   children: collections
                       .map((c) => ListTile(
                             leading: const Icon(Icons.check_circle,
-                                color: AppTheme.ownedGreen),
+                                color: AppTheme.owned),
                             title: Text(c.name),
                             subtitle: Text('${c.itemCount} items'),
                             trailing: IconButton(
@@ -206,22 +206,22 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryBrown.withAlpha(12),
+        color: AppTheme.primary.withAlpha(12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.cardboardDark),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.folder_open, color: AppTheme.primaryBrown),
+              const Icon(Icons.folder_open, color: AppTheme.primary),
               const SizedBox(width: 8),
               const Text('Importer un fichier JSON local',
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryBrown)),
+                      color: AppTheme.primary)),
             ],
           ),
           const SizedBox(height: 6),

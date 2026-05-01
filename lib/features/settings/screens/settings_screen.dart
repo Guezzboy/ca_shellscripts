@@ -135,7 +135,7 @@ class _SectionHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: AppTheme.primaryBrown,
+          color: AppTheme.primary,
           letterSpacing: 1.2,
         ),
       ),

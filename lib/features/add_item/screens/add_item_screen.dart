@@ -234,7 +234,7 @@ class _SearchResultTile extends StatelessWidget {
       trailing: ElevatedButton(
         onPressed: onMark,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.ownedGreen,
+          backgroundColor: AppTheme.owned,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           visualDensity: VisualDensity.compact,
