@@ -7,6 +7,7 @@ class DisplayItem {
   final List<String> imagePaths; // local paths for custom items (multi-photo)
   final bool owned;
   final bool isCustom;
+  final bool isRare;
 
   /// ID of the owned_items record (null if base item not owned or if custom).
   final String? ownedRecordId;
@@ -19,6 +20,7 @@ class DisplayItem {
     this.imagePaths = const [],
     required this.owned,
     required this.isCustom,
+    this.isRare = false,
     this.ownedRecordId,
   });
 

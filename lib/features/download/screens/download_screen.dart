@@ -10,6 +10,12 @@ import '../../../shared/theme/app_theme.dart';
 
 const _popularCollections = [
   (
+    name: 'Verres Pokémon Amora',
+    icon: '⭐',
+    url:
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/amora_pokemon.json',
+  ),
+  (
     name: 'Verres Amora Disney',
     icon: '🍷',
     url:

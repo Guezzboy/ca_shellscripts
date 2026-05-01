@@ -91,6 +91,13 @@ class _ItemCardState extends State<ItemCard> {
                             color: Colors.white, size: 10),
                       ),
                     ),
+                  // Rare star badge
+                  if (item.isRare)
+                    const Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: Text('⭐', style: TextStyle(fontSize: 10)),
+                    ),
                   // Photo counter dots
                   if (hasMultiplePhotos)
                     Positioned(

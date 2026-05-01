@@ -75,7 +75,7 @@ class ItemRepository {
     // Base items with left join on owned_items
     final baseRows = await db.rawQuery('''
       SELECT
-        i.id, i.name, i.number, i.image_url,
+        i.id, i.name, i.number, i.image_url, i.metadata,
         o.id AS owned_record_id
       FROM items i
       LEFT JOIN owned_items o
@@ -84,15 +84,26 @@ class ItemRepository {
       ORDER BY CAST(i.number AS INTEGER) ASC, i.name ASC
     ''', [collectionId, collectionId]);
 
-    final baseItems = baseRows.map((row) => DisplayItem(
-          id: row['id'] as String,
-          name: row['name'] as String,
-          number: row['number'] as String?,
-          imageUrl: row['image_url'] as String?,
-          owned: row['owned_record_id'] != null,
-          isCustom: false,
-          ownedRecordId: row['owned_record_id'] as String?,
-        ));
+    final baseItems = baseRows.map((row) {
+      bool isRare = false;
+      final metaRaw = row['metadata'] as String?;
+      if (metaRaw != null && metaRaw.isNotEmpty) {
+        try {
+          final meta = json.decode(metaRaw) as Map<String, dynamic>;
+          isRare = (meta['rare'] as bool?) ?? false;
+        } catch (_) {}
+      }
+      return DisplayItem(
+        id: row['id'] as String,
+        name: row['name'] as String,
+        number: row['number'] as String?,
+        imageUrl: row['image_url'] as String?,
+        owned: row['owned_record_id'] != null,
+        isCustom: false,
+        isRare: isRare,
+        ownedRecordId: row['owned_record_id'] as String?,
+      );
+    });
 
     // Custom items (always owned)
     final customRows = await db.rawQuery('''
