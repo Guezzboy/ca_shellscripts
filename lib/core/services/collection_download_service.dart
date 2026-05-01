@@ -23,8 +23,12 @@ class CollectionDownloadService {
 
   Future<({String collectionId, int itemCount})> downloadFromUrl(
       String url) async {
-    final response = await _dio.get<Map<String, dynamic>>(url);
-    return importJson(response.data!);
+    final response = await _dio.get<dynamic>(url);
+    final raw = response.data;
+    final data = raw is String
+        ? json.decode(raw) as Map<String, dynamic>
+        : raw as Map<String, dynamic>;
+    return importJson(data);
   }
 
   Future<({String collectionId, int itemCount})> importJson(
