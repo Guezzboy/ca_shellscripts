@@ -31,9 +31,15 @@ class OwnedItemRepository {
 
   Future<int> countOwned(String collectionId) async {
     final db = await _db;
-    return Sqflite.firstIntValue(await db.rawQuery(
+    final base = Sqflite.firstIntValue(await db.rawQuery(
           'SELECT COUNT(*) FROM owned_items WHERE collection_id = ?',
           [collectionId])) ??
         0;
+    // Custom items are always owned
+    final custom = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM custom_items WHERE collection_id = ?',
+          [collectionId])) ??
+        0;
+    return base + custom;
   }
 }

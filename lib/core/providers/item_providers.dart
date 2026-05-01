@@ -50,6 +50,7 @@ class CollectionItemsNotifier
     );
     await collectionRepo.updateItemCount(arg);
     ref.invalidateSelf();
+    ref.invalidate(ownedCountProvider(arg));
   }
 
   Future<void> refresh() async {
