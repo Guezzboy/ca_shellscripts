@@ -14,26 +14,26 @@ class CollectionsListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mes Collections'),
+        title: const Text('Collections'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings_outlined, size: 22),
             onPressed: () => context.push('/settings'),
-            tooltip: 'Paramètres',
           ),
         ],
       ),
       body: collectionsAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+            child: CircularProgressIndicator(strokeWidth: 1.5)),
         error: (e, _) => Center(child: Text('Erreur : $e')),
         data: (collections) {
           if (collections.isEmpty) {
             return _EmptyState(onDownload: () => context.push('/download'));
           }
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          return ListView.separated(
             itemCount: collections.length,
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, indent: 20, endIndent: 20),
             itemBuilder: (context, index) {
               final col = collections[index];
               return CollectionCard(
@@ -45,24 +45,33 @@ class CollectionsListScreen extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'download',
-            onPressed: () => context.push('/download'),
-            icon: const Icon(Icons.download),
-            label: const Text('Télécharger'),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          decoration: const BoxDecoration(
+            color: AppTheme.surface,
+            border: Border(top: BorderSide(color: AppTheme.border)),
           ),
-          const SizedBox(height: 8),
-          FloatingActionButton.extended(
-            heroTag: 'create',
-            onPressed: () => _showCreateDialog(context, ref),
-            icon: const Icon(Icons.add),
-            label: const Text('Nouvelle collection'),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showCreateDialog(context, ref),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Nouvelle'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => context.push('/download'),
+                  icon: const Icon(Icons.download, size: 18),
+                  label: const Text('Importer'),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -76,9 +85,7 @@ class CollectionsListScreen extends ConsumerWidget {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Nom de la collection',
-          ),
+          decoration: const InputDecoration(hintText: 'Nom de la collection'),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),
         actions: [
@@ -92,8 +99,8 @@ class CollectionsListScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (name != null && name.isNotEmpty) {
-      await ref.read(collectionsProvider.notifier).create(name);
+    if (name != null && name.trim().isNotEmpty) {
+      await ref.read(collectionsProvider.notifier).create(name.trim());
     }
   }
 
@@ -102,14 +109,14 @@ class CollectionsListScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer la collection ?'),
-        content: Text('Cette action supprimera "$name" et tous ses items.'),
+        title: const Text('Supprimer ?'),
+        content: Text('Supprimer "$name" et tous ses items ?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text('Annuler')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Supprimer'),
           ),
@@ -124,41 +131,31 @@ class CollectionsListScreen extends ConsumerWidget {
 
 class _EmptyState extends StatelessWidget {
   final VoidCallback onDownload;
-
   const _EmptyState({required this.onDownload});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.collections_bookmark_outlined,
-              size: 80,
-              color: AppTheme.primaryBrown.withAlpha(100),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Aucune collection',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppTheme.primaryBrown,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
+            const Text('Aucune collection',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary)),
             const SizedBox(height: 8),
-            Text(
-              'Téléchargez une base en ligne ou créez votre propre collection.',
+            const Text(
+              'Importez une base JSON ou créez\nune collection vide.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.brown.shade600, fontSize: 14),
+              style: TextStyle(color: AppTheme.textSecondary, height: 1.5),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
+            const SizedBox(height: 28),
+            ElevatedButton(
               onPressed: onDownload,
-              icon: const Icon(Icons.download),
-              label: const Text('Télécharger une collection'),
+              child: const Text('Importer une collection'),
             ),
           ],
         ),
