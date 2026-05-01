@@ -13,31 +13,31 @@ const _popularCollections = [
     name: 'Verres Pokémon Amora',
     icon: '⭐',
     url:
-        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/amora_pokemon.json',
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/amora_pokemon.json',
   ),
   (
     name: 'Verres Amora Disney',
     icon: '🍷',
     url:
-        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/amora_disney.json',
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/amora_disney.json',
   ),
   (
     name: 'Cartes Panini FIFA 2026',
     icon: '⚽',
     url:
-        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/panini_fifa2026.json',
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/panini_fifa2026.json',
   ),
   (
     name: 'Figurines Nintendo Smash',
     icon: '🎮',
     url:
-        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/nintendo_smash.json',
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/nintendo_smash.json',
   ),
   (
     name: 'Cartes Magic The Gathering',
     icon: '🃏',
     url:
-        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/main/sample_data/magic_mtg.json',
+        'https://raw.githubusercontent.com/guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/magic_mtg.json',
   ),
 ];
 

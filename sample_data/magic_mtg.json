@@ -1,0 +1,27 @@
+{
+  "id": "magic-mtg-v1",
+  "name": "Cartes Magic The Gathering",
+  "version": 1,
+  "items": [
+    {"id": "mtg-001", "name": "Black Lotus", "number": "001", "description": "Artefact - P9"},
+    {"id": "mtg-002", "name": "Ancestral Recall", "number": "002", "description": "Éphémère - P9"},
+    {"id": "mtg-003", "name": "Time Walk", "number": "003", "description": "Rituel - P9"},
+    {"id": "mtg-004", "name": "Mox Ruby", "number": "004", "description": "Artefact - P9"},
+    {"id": "mtg-005", "name": "Mox Sapphire", "number": "005", "description": "Artefact - P9"},
+    {"id": "mtg-006", "name": "Mox Jet", "number": "006", "description": "Artefact - P9"},
+    {"id": "mtg-007", "name": "Mox Pearl", "number": "007", "description": "Artefact - P9"},
+    {"id": "mtg-008", "name": "Mox Emerald", "number": "008", "description": "Artefact - P9"},
+    {"id": "mtg-009", "name": "Timetwister", "number": "009", "description": "Rituel - P9"},
+    {"id": "mtg-010", "name": "Lightning Bolt", "number": "010", "description": "Éphémère - Rouge"},
+    {"id": "mtg-011", "name": "Counterspell", "number": "011", "description": "Éphémère - Bleu"},
+    {"id": "mtg-012", "name": "Dark Ritual", "number": "012", "description": "Éphémère - Noir"},
+    {"id": "mtg-013", "name": "Giant Growth", "number": "013", "description": "Éphémère - Vert"},
+    {"id": "mtg-014", "name": "Swords to Plowshares", "number": "014", "description": "Éphémère - Blanc"},
+    {"id": "mtg-015", "name": "Serra Angel", "number": "015", "description": "Créature - Blanc"},
+    {"id": "mtg-016", "name": "Shivan Dragon", "number": "016", "description": "Créature - Rouge"},
+    {"id": "mtg-017", "name": "Force of Will", "number": "017", "description": "Éphémère - Bleu"},
+    {"id": "mtg-018", "name": "Necropotence", "number": "018", "description": "Enchantement - Noir"},
+    {"id": "mtg-019", "name": "Survival of the Fittest", "number": "019", "description": "Enchantement - Vert"},
+    {"id": "mtg-020", "name": "Armageddon", "number": "020", "description": "Rituel - Blanc"}
+  ]
+}

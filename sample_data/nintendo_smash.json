@@ -1,0 +1,27 @@
+{
+  "id": "nintendo-smash-v1",
+  "name": "Figurines Nintendo Smash",
+  "version": 1,
+  "items": [
+    {"id": "smash-001", "name": "Mario", "number": "001", "description": "Nintendo - Plateforme"},
+    {"id": "smash-002", "name": "Link", "number": "002", "description": "Zelda - Action"},
+    {"id": "smash-003", "name": "Pikachu", "number": "003", "description": "Pokémon - Électrik"},
+    {"id": "smash-004", "name": "Kirby", "number": "004", "description": "Kirby - Plateforme"},
+    {"id": "smash-005", "name": "Samus", "number": "005", "description": "Metroid - Action"},
+    {"id": "smash-006", "name": "Donkey Kong", "number": "006", "description": "DK - Plateforme"},
+    {"id": "smash-007", "name": "Fox McCloud", "number": "007", "description": "Star Fox - Action"},
+    {"id": "smash-008", "name": "Ness", "number": "008", "description": "EarthBound - RPG"},
+    {"id": "smash-009", "name": "Jigglypuff", "number": "009", "description": "Pokémon - Normal"},
+    {"id": "smash-010", "name": "Luigi", "number": "010", "description": "Nintendo - Plateforme"},
+    {"id": "smash-011", "name": "Captain Falcon", "number": "011", "description": "F-Zero - Racing"},
+    {"id": "smash-012", "name": "Yoshi", "number": "012", "description": "Nintendo - Plateforme"},
+    {"id": "smash-013", "name": "Marth", "number": "013", "description": "Fire Emblem - Stratégie"},
+    {"id": "smash-014", "name": "Mewtwo", "number": "014", "description": "Pokémon - Psychique"},
+    {"id": "smash-015", "name": "Mr. Game & Watch", "number": "015", "description": "Game & Watch - Rétro"},
+    {"id": "smash-016", "name": "Ice Climbers", "number": "016", "description": "Ice Climber - Plateforme"},
+    {"id": "smash-017", "name": "Zelda", "number": "017", "description": "Zelda - Action"},
+    {"id": "smash-018", "name": "Young Link", "number": "018", "description": "Zelda - Action"},
+    {"id": "smash-019", "name": "Ganondorf", "number": "019", "description": "Zelda - Action"},
+    {"id": "smash-020", "name": "Falco", "number": "020", "description": "Star Fox - Action"}
+  ]
+}
