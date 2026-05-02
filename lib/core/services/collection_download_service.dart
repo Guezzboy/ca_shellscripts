@@ -5,10 +5,13 @@ import '../models/item.dart';
 import '../repositories/collection_repository.dart';
 import '../repositories/item_repository.dart';
 
-/// Supporte deux formats JSON :
+/// Supporte trois formats JSON :
 ///
 /// Format standard :
 /// { "name": "...", "version": 1, "items": [...] }
+///
+/// Format structuré (nouveau) :
+/// { "collection": { "id": "...", "name": "...", "totalItems": N }, "items": [...] }
 ///
 /// Format Amora/étendu :
 /// { "collection": { "nom": "...", "verres": [...], "marque": "...", ... } }
@@ -33,11 +36,62 @@ class CollectionDownloadService {
 
   Future<({String collectionId, int itemCount})> importJson(
       Map<String, dynamic> data) async {
-    // Détection du format
+    // Structured format: root-level "items" array alongside "collection" object
+    if (data.containsKey('collection') && data.containsKey('items')) {
+      return _importStructuredFormat(data);
+    }
+    // Amora format: items nested inside collection.verres
     if (data.containsKey('collection')) {
       return _importAmoraFormat(data['collection'] as Map<String, dynamic>);
     }
     return _importStandardFormat(data);
+  }
+
+  // ── Format structuré ─────────────────────────────────────────────────────
+
+  Future<({String collectionId, int itemCount})> _importStructuredFormat(
+      Map<String, dynamic> data) async {
+    final col = data['collection'] as Map<String, dynamic>;
+    final name = col['name'] as String? ?? 'Collection importée';
+    final sourceId = col['id'] as String?;
+
+    final collection = await _collectionRepo.create(name);
+    final collectionId = collection.id;
+    final baseId = sourceId ?? collectionId;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    final rawItems = data['items'] as List<dynamic>? ?? [];
+    final items = rawItems.map((raw) {
+      final map = raw as Map<String, dynamic>;
+      final stableId = map['id'] as String?;
+
+      final images = map['images'] as List<dynamic>? ?? [];
+      final imageUrl = images.isNotEmpty ? images.first as String? : null;
+
+      final metadata = json.encode({
+        'subtitle': map['subtitle'],
+        'year': map['year'],
+        'series': map['series'],
+        'extra_images': images.length > 1 ? images.skip(1).toList() : null,
+      });
+
+      return Item(
+        id: stableId != null ? '${baseId}_$stableId' : _uuid.v4(),
+        baseId: collectionId,
+        name: map['name'] as String? ?? 'Item',
+        description: map['description'] as String?,
+        imageUrl: imageUrl,
+        metadata: metadata,
+        createdAt: now,
+        updatedAt: now,
+      );
+    }).toList();
+
+    await _itemRepo.insertBatch(items);
+    await _collectionRepo.update(
+      collection.copyWith(itemCount: items.length, lastSync: now),
+    );
+    return (collectionId: collectionId, itemCount: items.length);
   }
 
   // ── Format standard ───────────────────────────────────────────────────────

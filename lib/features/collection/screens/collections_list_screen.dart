@@ -56,7 +56,7 @@ class CollectionsListScreen extends ConsumerWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _showCreateDialog(context, ref),
+                  onPressed: () => context.push('/create-collection'),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Nouvelle'),
                 ),
@@ -74,34 +74,6 @@ class CollectionsListScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nouvelle collection'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Nom de la collection'),
-          onSubmitted: (v) => Navigator.of(ctx).pop(v),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Annuler')),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('Créer'),
-          ),
-        ],
-      ),
-    );
-    if (name != null && name.trim().isNotEmpty) {
-      await ref.read(collectionsProvider.notifier).create(name.trim());
-    }
   }
 
   Future<void> _confirmDelete(

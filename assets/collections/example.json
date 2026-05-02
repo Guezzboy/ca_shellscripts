@@ -1,0 +1,43 @@
+{
+  "collection": {
+    "id": "example",
+    "name": "Exemple",
+    "description": "Collection de démonstration locale.",
+    "totalItems": 3
+  },
+  "items": [
+    {
+      "id": "ex-001",
+      "name": "Item Exemple 1",
+      "subtitle": "Premier item",
+      "year": "2024",
+      "series": "Série A",
+      "description": "Description du premier item.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "ex-002",
+      "name": "Item Exemple 2",
+      "subtitle": "Deuxième item",
+      "year": "2024",
+      "series": "Série A",
+      "description": "Description du deuxième item.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "ex-003",
+      "name": "Item Exemple 3",
+      "subtitle": "Troisième item",
+      "year": "2024",
+      "series": "Série B",
+      "description": "Description du troisième item.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -32,6 +33,7 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text('Import JSON (bientôt disponible)'),
             onTap: () => _showComingSoon(context),
           ),
+          const _RemoteUrlTile(),
           const Divider(),
           const _SectionHeader('Sync'),
           ListTile(
@@ -120,6 +122,80 @@ class SettingsScreen extends ConsumerWidget {
       }
     }
   }
+}
+
+class _RemoteUrlTile extends StatefulWidget {
+  const _RemoteUrlTile();
+
+  @override
+  State<_RemoteUrlTile> createState() => _RemoteUrlTileState();
+}
+
+class _RemoteUrlTileState extends State<_RemoteUrlTile> {
+  String _url = '';
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) {
+        setState(() =>
+            _url = p.getString('remote_collection_base_url') ?? '');
+      }
+    });
+  }
+
+  Future<void> _edit() async {
+    final ctrl = TextEditingController(text: _url);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('URL de données distantes'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            hintText: 'https://example.com/collections',
+            helperText:
+                'Le slug est ajouté : …/{nom-collection}.json',
+            helperMaxLines: 2,
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Annuler')),
+          ElevatedButton(
+              onPressed: () =>
+                  Navigator.of(ctx).pop(ctrl.text.trim()),
+              child: const Text('Enregistrer')),
+        ],
+      ),
+    );
+    if (result != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('remote_collection_base_url', result);
+      if (mounted) setState(() => _url = result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+        leading: const Icon(Icons.cloud_outlined),
+        title: const Text('URL de données distantes'),
+        subtitle: Text(
+          _url.isEmpty ? 'Non configurée' : _url,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+              fontSize: 13,
+              color: _url.isEmpty
+                  ? AppTheme.textSecondary
+                  : AppTheme.textPrimary),
+        ),
+        onTap: _edit,
+      );
 }
 
 class _SectionHeader extends StatelessWidget {
