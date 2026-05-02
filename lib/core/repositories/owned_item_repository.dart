@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import '../database/database_helper.dart';
@@ -26,6 +27,28 @@ class OwnedItemRepository {
   Future<void> markUnowned(String ownedRecordId) async {
     final db = await _db;
     await db.delete('owned_items',
+        where: 'id = ?', whereArgs: [ownedRecordId]);
+  }
+
+  Future<List<String>> loadUserPhotos(String ownedRecordId) async {
+    final db = await _db;
+    final rows = await db.query('owned_items',
+        columns: ['user_photos'],
+        where: 'id = ?',
+        whereArgs: [ownedRecordId]);
+    if (rows.isEmpty) return [];
+    final raw = rows.first['user_photos'] as String?;
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      return (jsonDecode(raw) as List<dynamic>).cast<String>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> saveUserPhotos(String ownedRecordId, List<String> paths) async {
+    final db = await _db;
+    await db.update('owned_items', {'user_photos': jsonEncode(paths)},
         where: 'id = ?', whereArgs: [ownedRecordId]);
   }
 

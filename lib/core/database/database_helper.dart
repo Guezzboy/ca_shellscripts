@@ -3,7 +3,7 @@ import 'package:path/path.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'collection_app.db';
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -22,6 +22,7 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -85,5 +86,12 @@ class DatabaseHelper {
         'CREATE INDEX idx_owned_item ON owned_items(item_id)');
     await db.execute(
         'CREATE INDEX idx_custom_collection ON custom_items(collection_id)');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+          'ALTER TABLE owned_items ADD COLUMN user_photos TEXT');
+    }
   }
 }

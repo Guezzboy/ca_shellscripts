@@ -1,9 +1,16 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/models/display_item.dart';
 import '../../../core/providers/item_providers.dart';
+import '../../../core/providers/repository_providers.dart';
 import '../../../core/repositories/owned_item_repository.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -39,13 +46,38 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
   final TextEditingController _noteCtrl = TextEditingController();
   Timer? _debounce;
   final _noteRepo = OwnedItemRepository();
+  final _picker = ImagePicker();
+  final _uuid = const Uuid();
   bool _toggling = false;
+  List<String> _userPhotos = [];
+
+  bool get _isDesktop =>
+      Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+
+  // All images to show: user photos first, then network reference images.
+  List<String> get _images {
+    if (_item.isCustom) return _userPhotos;
+    final net = <String>[];
+    if (_item.imageUrl != null && _item.imageUrl!.isNotEmpty) {
+      net.add(_item.imageUrl!);
+    }
+    final sprite = _item.metadata?['sprite_url'] as String?;
+    if (sprite != null && sprite.isNotEmpty && sprite != _item.imageUrl) {
+      net.add(sprite);
+    }
+    return [..._userPhotos, ...net];
+  }
+
+  bool _isUserPhoto(String src) => _userPhotos.contains(src);
+
+  static bool _isLocalPath(String src) =>
+      src.startsWith('/') || src.startsWith('file://');
 
   @override
   void initState() {
     super.initState();
     _item = widget.item;
-    _loadNote();
+    _loadItemData();
   }
 
   @override
@@ -56,12 +88,25 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     super.dispose();
   }
 
-  Future<void> _loadNote() async {
+  Future<void> _loadItemData() async {
+    if (_item.isCustom) {
+      if (mounted) setState(() => _userPhotos = List.from(_item.imagePaths));
+      return;
+    }
     if (_item.owned && _item.ownedRecordId != null) {
-      final note = await _noteRepo.loadNote(_item.ownedRecordId!);
-      if (mounted) _noteCtrl.text = note ?? '';
+      final results = await Future.wait([
+        _noteRepo.loadNote(_item.ownedRecordId!),
+        _noteRepo.loadUserPhotos(_item.ownedRecordId!),
+      ]);
+      if (mounted) {
+        _noteCtrl.text = (results[0] as String?) ?? '';
+        setState(() => _userPhotos = (results[1] as List<String>?) ?? []);
+      }
     } else {
-      if (mounted) _noteCtrl.clear();
+      if (mounted) {
+        _noteCtrl.clear();
+        setState(() => _userPhotos = []);
+      }
     }
   }
 
@@ -73,6 +118,284 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
       }
     });
   }
+
+  // ── Photo management ─────────────────────────────────────────────────────
+
+  Future<void> _showAddPhotoSheet() async {
+    if (_isDesktop) {
+      await _pickFileDesktop();
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              decoration: BoxDecoration(
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Prendre une photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choisir dans la galerie'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Annuler'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      if (source == ImageSource.gallery) {
+        final files =
+            await _picker.pickMultiImage(maxWidth: 1200, imageQuality: 85);
+        for (final f in files) {
+          await _saveAndAddPhoto(f.path);
+        }
+      } else {
+        final f = await _picker.pickImage(
+            source: source, maxWidth: 1200, imageQuality: 85);
+        if (f != null) await _saveAndAddPhoto(f.path);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _pickFileDesktop() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: true,
+    );
+    if (result == null) return;
+    for (final f in result.files) {
+      if (f.path != null) await _saveAndAddPhoto(f.path!);
+    }
+  }
+
+  Future<void> _saveAndAddPhoto(String sourcePath) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final folder = Directory(
+        '${dir.path}/item_photos/${widget.collectionId}/${_item.id}');
+    await folder.create(recursive: true);
+    final dest = File('${folder.path}/${_uuid.v4()}.jpg');
+    await File(sourcePath).copy(dest.path);
+    final updated = [..._userPhotos, dest.path];
+    await _persistUserPhotos(updated);
+    if (mounted) setState(() => _userPhotos = updated);
+  }
+
+  Future<void> _persistUserPhotos(List<String> photos) async {
+    if (_item.isCustom) {
+      await ref
+          .read(customItemRepositoryProvider)
+          .updateImagePaths(_item.id, photos);
+      ref.invalidate(collectionItemsProvider(widget.collectionId));
+    } else if (_item.ownedRecordId != null) {
+      await _noteRepo.saveUserPhotos(_item.ownedRecordId!, photos);
+    }
+  }
+
+  Future<void> _showPhotoOptions(String src) async {
+    final userIdx = _userPhotos.indexOf(src);
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              decoration: BoxDecoration(
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            if (userIdx > 0)
+              ListTile(
+                leading: const Icon(Icons.star_outline),
+                title: const Text('Mettre en premier'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _movePhotoFirst(userIdx);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.swap_vert_outlined),
+              title: const Text('Réorganiser les photos'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showReorderSheet();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('Supprimer cette photo',
+                  style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeletePhoto(src);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _movePhotoFirst(int index) {
+    final updated = [..._userPhotos];
+    final photo = updated.removeAt(index);
+    updated.insert(0, photo);
+    _persistUserPhotos(updated);
+    setState(() {
+      _userPhotos = updated;
+      _imageIndex = 0;
+      _pageCtrl.jumpToPage(0);
+    });
+  }
+
+  Future<void> _confirmDeletePhoto(String src) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer cette photo ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child:
+                const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    if (_isLocalPath(src)) {
+      try {
+        await File(src).delete();
+      } catch (_) {}
+    }
+    final updated = _userPhotos.where((p) => p != src).toList();
+    await _persistUserPhotos(updated);
+    if (mounted) {
+      setState(() {
+        _userPhotos = updated;
+        _imageIndex = min(_imageIndex, max(0, _images.length - 1));
+      });
+    }
+  }
+
+  void _showReorderSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        var photos = List<String>.from(_userPhotos);
+        return StatefulBuilder(
+          builder: (ctx, setModal) => Container(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.65),
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 4),
+                  decoration: BoxDecoration(
+                      color: AppTheme.border,
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+                  child: Row(
+                    children: [
+                      const Text('Réorganiser les photos',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 16)),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Fermer'),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ReorderableListView.builder(
+                    itemCount: photos.length,
+                    onReorder: (oldIdx, newIdx) {
+                      if (newIdx > oldIdx) newIdx--;
+                      final p = photos.removeAt(oldIdx);
+                      photos.insert(newIdx, p);
+                      setModal(() {});
+                      _persistUserPhotos(photos);
+                      setState(() => _userPhotos = List.from(photos));
+                    },
+                    itemBuilder: (_, i) => ListTile(
+                      key: ValueKey(photos[i]),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.file(
+                          File(photos[i]),
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 48,
+                            height: 48,
+                            color: const Color(0xFFEFEDE8),
+                          ),
+                        ),
+                      ),
+                      title: Text('Photo ${i + 1}',
+                          style: const TextStyle(fontSize: 14)),
+                      trailing: const Icon(Icons.drag_handle,
+                          color: AppTheme.textSecondary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Owned toggle ─────────────────────────────────────────────────────────
 
   Future<void> _toggleOwned() async {
     if (_toggling) return;
@@ -89,7 +412,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
         if (fresh != null) _item = fresh;
         _toggling = false;
       });
-      await _loadNote();
+      await _loadItemData();
     }
   }
 
@@ -119,21 +442,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     }
   }
 
-  // All image sources for this item
-  List<String> get _images {
-    if (_item.imagePaths.isNotEmpty) return _item.imagePaths;
-    final urls = <String>[];
-    if (_item.imageUrl != null && _item.imageUrl!.isNotEmpty) {
-      urls.add(_item.imageUrl!);
-    }
-    final sprite = _item.metadata?['sprite_url'] as String?;
-    if (sprite != null && sprite.isNotEmpty && sprite != _item.imageUrl) {
-      urls.add(sprite);
-    }
-    return urls;
-  }
-
-  bool get _useLocalFiles => _item.imagePaths.isNotEmpty;
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +450,6 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     final meta = _item.metadata;
 
     return Container(
-      // ~88% of screen height
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
@@ -152,7 +460,6 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
           Container(
             width: 36,
             height: 4,
@@ -167,11 +474,8 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Gallery
                   _buildGallery(images),
-                  // Thumbnails
-                  if (images.length > 1) _buildThumbnails(images),
-                  // Info
+                  _buildThumbnailRow(images),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: Column(
@@ -205,25 +509,47 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     );
   }
 
+  // ── Gallery ───────────────────────────────────────────────────────────────
+
   Widget _buildGallery(List<String> images) {
+    if (images.isEmpty) {
+      return GestureDetector(
+        onTap: _showAddPhotoSheet,
+        child: Container(
+          height: 220,
+          color: const Color(0xFFEFEDE8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_a_photo_outlined,
+                  size: 48, color: Colors.brown.shade300),
+              const SizedBox(height: 12),
+              Text('Ajouter vos photos',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.brown.shade400)),
+              const SizedBox(height: 4),
+              Text('Appareil photo ou galerie',
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.brown.shade300)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Stack(
       children: [
         SizedBox(
           height: 260,
-          child: images.isEmpty
-              ? Container(
-                  color: const Color(0xFFEFEDE8),
-                  child: const Icon(Icons.image_outlined,
-                      size: 64, color: Color(0xFFBBB8B2)),
-                )
-              : PageView.builder(
-                  controller: _pageCtrl,
-                  itemCount: images.length,
-                  onPageChanged: (i) => setState(() => _imageIndex = i),
-                  itemBuilder: (_, i) => _buildGalleryImage(images[i]),
-                ),
+          child: PageView.builder(
+            controller: _pageCtrl,
+            itemCount: images.length,
+            onPageChanged: (i) => setState(() => _imageIndex = i),
+            itemBuilder: (_, i) => _buildGalleryImage(images[i]),
+          ),
         ),
-        // Owned badge
         if (_item.owned)
           Positioned(
             bottom: 12,
@@ -249,7 +575,6 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
               ),
             ),
           ),
-        // Page counter
         if (images.length > 1)
           Positioned(
             top: 10,
@@ -275,7 +600,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
   }
 
   Widget _buildGalleryImage(String src) {
-    if (_useLocalFiles) {
+    if (_isLocalPath(src)) {
       return Image.file(File(src),
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) =>
@@ -287,40 +612,95 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             const Icon(Icons.broken_image, size: 48, color: Colors.grey));
   }
 
-  Widget _buildThumbnails(List<String> images) {
+  // ── Thumbnail row ─────────────────────────────────────────────────────────
+
+  Widget _buildThumbnailRow(List<String> images) {
+    // Always show thumbnail row (for "+" tile) after gallery is non-empty,
+    // but also show a compact add row even when gallery is empty.
+    final showThumbs = images.isNotEmpty;
     return SizedBox(
       height: 64,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         scrollDirection: Axis.horizontal,
-        itemCount: images.length,
+        itemCount: (showThumbs ? images.length : 0) + 1,
         separatorBuilder: (_, __) => const SizedBox(width: 6),
-        itemBuilder: (_, i) => GestureDetector(
-          onTap: () => _pageCtrl.animateToPage(i,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: i == _imageIndex ? AppTheme.primary : AppTheme.border,
-                width: i == _imageIndex ? 2 : 1,
+        itemBuilder: (_, i) {
+          if (i == images.length) return _buildAddTile();
+          final src = images[i];
+          final isUser = _isUserPhoto(src);
+          return GestureDetector(
+            onTap: () => _pageCtrl.animateToPage(i,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut),
+            onLongPress: isUser ? () => _showPhotoOptions(src) : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: i == _imageIndex
+                      ? AppTheme.primary
+                      : AppTheme.border,
+                  width: i == _imageIndex ? 2 : 1,
+                ),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: _buildThumbnailImage(src),
+                  ),
+                  // Small dot on user photos to distinguish from network refs
+                  if (isUser)
+                    const Positioned(
+                      top: 2,
+                      left: 2,
+                      child: Icon(Icons.person, size: 9, color: Colors.white),
+                    ),
+                ],
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: _useLocalFiles
-                  ? Image.file(File(images[i]), fit: BoxFit.cover)
-                  : Image.network(images[i], fit: BoxFit.cover),
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
+
+  Widget _buildAddTile() {
+    return GestureDetector(
+      onTap: _showAddPhotoSheet,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppTheme.bg,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: const Icon(Icons.add_a_photo_outlined,
+            size: 18, color: AppTheme.textSecondary),
+      ),
+    );
+  }
+
+  Widget _buildThumbnailImage(String src) {
+    if (_isLocalPath(src)) {
+      return Image.file(File(src),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              const Icon(Icons.broken_image, size: 16, color: Colors.grey));
+    }
+    return Image.network(src,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.broken_image, size: 16, color: Colors.grey));
+  }
+
+  // ── Header & metadata ────────────────────────────────────────────────────
 
   Widget _buildHeader() {
     return Column(
@@ -384,11 +764,15 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     }
 
     add('Type', meta['type']);
-    add('Génération', meta['generation'] != null ? 'Gen ${meta['generation']}' : null);
+    add('Génération',
+        meta['generation'] != null ? 'Gen ${meta['generation']}' : null);
     add('Édition', meta['annee_edition']);
-    add('Série', meta['serie']);
+    add('Série', meta['serie'] ?? meta['series']);
     add('Couleur', meta['couleur_dominante']);
-    add('N° Pokédex', meta['numero_pokedex'] != null ? '#${meta['numero_pokedex']}' : null);
+    add('N° Pokédex',
+        meta['numero_pokedex'] != null ? '#${meta['numero_pokedex']}' : null);
+    add('Sous-titre', meta['subtitle']);
+    add('Année', meta['year']);
     add('Licence', meta['licence']);
 
     if (rows.isEmpty) return const SizedBox.shrink();
