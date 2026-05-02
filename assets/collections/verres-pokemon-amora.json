@@ -1,0 +1,307 @@
+{
+  "collection": {
+    "id": "verres-pokemon-amora",
+    "name": "Verres Moutarde Pokémon Amora",
+    "description": "Série de verres collector distribués avec la moutarde Amora en France à partir de 1999. Chaque verre représente un Pokémon peint en couleur sur verre transparent. Plusieurs vagues de production entre 1999 et 2023.",
+    "totalItems": 27
+  },
+  "items": [
+    {
+      "id": "bulbizarre",
+      "name": "Bulbizarre",
+      "subtitle": "N°001 — Bulbasaur",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Bulbizarre de profil, bulbe végétal vert sur le dos. Couleur dominante : vert tendre.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "salamèche",
+      "name": "Salamèche",
+      "subtitle": "N°004 — Charmander",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Salamèche debout, flamme orange au bout de la queue. Couleur dominante : orange.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "dracaufeu",
+      "name": "Dracaufeu",
+      "subtitle": "N°006 — Charizard — Rare",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Dracaufeu en vol, ailes déployées, flamme au bout de la queue. Verre rare. Couleur dominante : orange-rouge.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "carapuce",
+      "name": "Carapuce",
+      "subtitle": "N°007 — Squirtle",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Carapuce souriant, carapace bleue dans le dos. Couleur dominante : bleu.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "pikachu-standard",
+      "name": "Pikachu",
+      "subtitle": "N°025 — Variante standard",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Pikachu debout, joues rouges, queue en éclair. Pose classique. Couleur dominante : jaune.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "pikachu-coeur",
+      "name": "Pikachu",
+      "subtitle": "N°025 — Variante Cœur",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Pikachu tenant un cœur rouge entre les pattes, expression attendrie. Variante exclusive à cette série. Couleur dominante : jaune et rouge.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "pikachu-surfeur",
+      "name": "Pikachu",
+      "subtitle": "N°025 — Variante Surfeur",
+      "year": "2000",
+      "series": "Vague 2 — 2000",
+      "description": "Pikachu en équilibre sur une planche de surf, bras levés. Inspiré de l'épisode spécial Pikachu Surfeur. Couleur dominante : jaune et bleu.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "miaouss",
+      "name": "Miaouss",
+      "subtitle": "N°052 — Meowth",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Miaouss debout sur ses pattes arrière, pièce de monnaie sur le front. Couleur dominante : crème et brun.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "caninos",
+      "name": "Caninos",
+      "subtitle": "N°058 — Growlithe",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Caninos en position d'éveil, rayures noires sur fond orange. Couleur dominante : orange et noir.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "arcanin",
+      "name": "Arcanin",
+      "subtitle": "N°059 — Arcanine",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Arcanin en pleine course, crinière crème et robe tigrée orange. Couleur dominante : orange et crème.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "ectoplasma",
+      "name": "Ectoplasma",
+      "subtitle": "N°094 — Gengar",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Ectoplasma souriant, silhouette violette trapue avec yeux rouges. Couleur dominante : violet.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "magicarpe",
+      "name": "Magicarpe",
+      "subtitle": "N°129 — Magikarp",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Magicarpe bondissant hors de l'eau, écailles rouges brillantes. Couleur dominante : rouge et or.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "lokhlass",
+      "name": "Lokhlass",
+      "subtitle": "N°131 — Lapras",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Lokhlass vu de trois quarts, coquille gris-vert dans le dos, expression douce. Couleur dominante : bleu-turquoise.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "evoli",
+      "name": "Évoli",
+      "subtitle": "N°133 — Eevee",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Évoli assis, collerette crème autour du cou, queue touffue. Couleur dominante : brun et crème.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "aquali",
+      "name": "Aquali",
+      "subtitle": "N°134 — Vaporeon",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Aquali de profil, nageoires bleues et corps turquoise, crête dorsale. Couleur dominante : bleu clair.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "voltali",
+      "name": "Voltali",
+      "subtitle": "N°135 — Jolteon",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Voltali en posture électrisée, fourrure jaune en pointes hérissées. Couleur dominante : jaune.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "pyroli",
+      "name": "Pyroli",
+      "subtitle": "N°136 — Flareon",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Pyroli assis, crinière et queue rouge-orangé enflammées. Couleur dominante : orange et rouge.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "ronflex",
+      "name": "Ronflex",
+      "subtitle": "N°143 — Snorlax",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Ronflex allongé ou debout, silhouette ronde bleu-gris et ventre crème. Couleur dominante : bleu-gris.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "artikodin",
+      "name": "Artikodin",
+      "subtitle": "N°144 — Articuno",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Artikodin en vol, grandes ailes bleues déployées, plumage glacé. Couleur dominante : bleu azur.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "electhor",
+      "name": "Électhor",
+      "subtitle": "N°145 — Zapdos",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Électhor ailes déployées, plumage jaune électrique hérissé, bec acéré. Couleur dominante : jaune.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "sulfura",
+      "name": "Sulfura",
+      "subtitle": "N°146 — Moltres",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Sulfura en vol, plumage de flammes orangées, ailes de feu. Couleur dominante : orange et jaune.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "minidraco",
+      "name": "Minidraco",
+      "subtitle": "N°147 — Dratini",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Minidraco enroulé en spirale, corps bleu-blanc, cristal sur le front. Couleur dominante : bleu.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "dracolosse",
+      "name": "Dracolosse",
+      "subtitle": "N°149 — Dragonite — Rare",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Dracolosse debout, petites ailes orange dans le dos, expression joviale. Verre rare. Couleur dominante : orange.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "mewtwo",
+      "name": "Méwtwo",
+      "subtitle": "N°150 — Mewtwo — Rare",
+      "year": "1999",
+      "series": "Vague 1 — 1999",
+      "description": "Méwtwo en posture imposante, queue recourbée, regard intense. Verre rare très recherché. Couleur dominante : violet clair.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "lugia",
+      "name": "Lugia",
+      "subtitle": "N°249 — Lugia",
+      "year": "2000",
+      "series": "Vague 2 — 2000",
+      "description": "Lugia de profil, silhouette blanche majestueuse, ailes légèrement déployées. Introduit avec le film Pokémon 2. Couleur dominante : blanc et gris-bleu.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "chochodile",
+      "name": "Chochodile",
+      "subtitle": "N°158 — Totodile",
+      "year": "2000",
+      "series": "Vague 2 — 2000",
+      "description": "Chochodile debout, mâchoire ouverte, crête dorsale bleue. Starter Eau de Johto. Couleur dominante : bleu.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    },
+    {
+      "id": "coiffeton",
+      "name": "Coiffeton",
+      "subtitle": "Pokémon Coiffure — Rare",
+      "year": "2023",
+      "series": "Vague 2023",
+      "description": "Verre de la réédition 2023. Pokémon à la coiffure distinctive, design moderne. Verre rare de la nouvelle vague. Couleur dominante : à compléter.",
+      "images": [],
+      "owned": false,
+      "notes": ""
+    }
+  ]
+}
