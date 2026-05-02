@@ -20,13 +20,34 @@ class CollectionDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _CollectionDetailScreenState
-    extends ConsumerState<CollectionDetailScreen> {
+    extends ConsumerState<CollectionDetailScreen>
+    with TickerProviderStateMixin {
   _Filter _filter = _Filter.all;
   String _search = '';
   final _searchController = TextEditingController();
 
+  late final AnimationController _trophyCtrl;
+  late final Animation<double> _trophyScale;
+  bool _wasComplete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _trophyCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _trophyScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.45), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: 1.45, end: 0.88), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: 0.88, end: 1.12), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 1.12, end: 1.0), weight: 20),
+    ]).animate(_trophyCtrl);
+  }
+
   @override
   void dispose() {
+    _trophyCtrl.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -38,6 +59,18 @@ class _CollectionDetailScreenState
     final itemsAsync =
         ref.watch(collectionItemsProvider(widget.collectionId));
     final ownedAsync = ref.watch(ownedCountProvider(widget.collectionId));
+
+    // Trophy bounce when the collection first reaches 100 %
+    ref.listen(ownedCountProvider(widget.collectionId), (_, next) {
+      next.whenData((owned) {
+        final items =
+            ref.read(collectionItemsProvider(widget.collectionId)).valueOrNull;
+        if (items == null || items.isEmpty) return;
+        final isComplete = owned >= items.length;
+        if (isComplete && !_wasComplete) _trophyCtrl.forward(from: 0);
+        _wasComplete = isComplete;
+      });
+    });
 
     return Scaffold(
       backgroundColor: AppTheme.bg,
@@ -59,20 +92,20 @@ class _CollectionDetailScreenState
               error: (_, __) => const SizedBox.shrink(),
             ),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(96),
+              preferredSize: const Size.fromHeight(94),
               child: Column(
                 children: [
-                  // Stats row
+                  // Progress header
                   Container(
                     color: AppTheme.surface,
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
                     child: itemsAsync.when(
                       data: (items) => ownedAsync.when(
-                        data: (owned) => _buildStats(items, owned),
-                        loading: () => const SizedBox(height: 20),
+                        data: (owned) => _buildProgressHeader(items, owned),
+                        loading: () => const SizedBox(height: 30),
                         error: (_, __) => const SizedBox.shrink(),
                       ),
-                      loading: () => const SizedBox(height: 20),
+                      loading: () => const SizedBox(height: 30),
                       error: (_, __) => const SizedBox.shrink(),
                     ),
                   ),
@@ -129,64 +162,56 @@ class _CollectionDetailScreenState
     );
   }
 
-  Widget _buildStats(List<DisplayItem> items, int owned) {
-    final total = items.where((i) => !i.isCustom).length;
+  Widget _buildProgressHeader(List<DisplayItem> items, int owned) {
+    final total = items.length;
+    final pct = total > 0 ? (owned / total).clamp(0.0, 1.0) : 0.0;
+    final isComplete = total > 0 && pct == 1.0;
+    final pctInt = (pct * 100).round();
     final custom = items.where((i) => i.isCustom).length;
-    final pct = total > 0 ? owned / (total + custom) : 0.0;
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RichText(
-                text: TextSpan(
-                  style: const TextStyle(color: AppTheme.textPrimary),
-                  children: [
-                    TextSpan(
-                      text: '$owned',
-                      style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5),
-                    ),
-                    TextSpan(
-                      text: ' / ${total + custom}',
-                      style: const TextStyle(
-                          fontSize: 16,
-                          color: AppTheme.textSecondary),
-                    ),
-                    if (custom > 0)
-                      TextSpan(
-                        text: '  ($custom perso)',
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary),
-                      ),
-                  ],
-                ),
+        Row(
+          children: [
+            Text(
+              '$owned / $total items • $pctInt%',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
               ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  minHeight: 3,
-                  backgroundColor: AppTheme.border,
-                  valueColor: const AlwaysStoppedAnimation(AppTheme.owned),
-                ),
+            ),
+            if (custom > 0) ...[
+              const SizedBox(width: 6),
+              Text(
+                '($custom perso)',
+                style: const TextStyle(
+                    fontSize: 11, color: AppTheme.textSecondary),
               ),
             ],
-          ),
+            const Spacer(),
+            ScaleTransition(
+              scale: _trophyScale,
+              child: Icon(
+                Icons.emoji_events_rounded,
+                size: 20,
+                color: isComplete
+                    ? const Color(0xFFFFB300)
+                    : const Color(0xFFD0CCBF),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Text(
-          '${(pct * 100).round()}%',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: pct == 1.0 ? AppTheme.owned : AppTheme.textSecondary,
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 7,
+            backgroundColor: const Color(0xFFE0E0E0),
+            valueColor: const AlwaysStoppedAnimation(Color(0xFF4CAF50)),
           ),
         ),
       ],
