@@ -34,6 +34,7 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => _showComingSoon(context),
           ),
           const _RemoteUrlTile(),
+          const _ProxyUrlTile(),
           const Divider(),
           const _SectionHeader('Sync'),
           ListTile(
@@ -186,6 +187,79 @@ class _RemoteUrlTileState extends State<_RemoteUrlTile> {
         title: const Text('URL de données distantes'),
         subtitle: Text(
           _url.isEmpty ? 'Non configurée' : _url,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+              fontSize: 13,
+              color: _url.isEmpty
+                  ? AppTheme.textSecondary
+                  : AppTheme.textPrimary),
+        ),
+        onTap: _edit,
+      );
+}
+
+class _ProxyUrlTile extends StatefulWidget {
+  const _ProxyUrlTile();
+
+  @override
+  State<_ProxyUrlTile> createState() => _ProxyUrlTileState();
+}
+
+class _ProxyUrlTileState extends State<_ProxyUrlTile> {
+  String _url = '';
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) {
+        setState(() => _url = p.getString('proxy_server_url') ?? '');
+      }
+    });
+  }
+
+  Future<void> _edit() async {
+    final ctrl = TextEditingController(text: _url);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('URL du serveur proxy'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            hintText: 'http://localhost:3000',
+            helperText:
+                'Serveur Node.js local (server/index.js). '
+                'Lance-le avec : node server/index.js',
+            helperMaxLines: 3,
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Annuler')),
+          ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+              child: const Text('Enregistrer')),
+        ],
+      ),
+    );
+    if (result != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('proxy_server_url', result);
+      if (mounted) setState(() => _url = result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+        leading: const Icon(Icons.travel_explore_outlined),
+        title: const Text('Serveur proxy (Coleka)'),
+        subtitle: Text(
+          _url.isEmpty ? 'Non configuré — recherche Coleka désactivée' : _url,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(

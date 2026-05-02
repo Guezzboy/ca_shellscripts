@@ -26,6 +26,7 @@ class _CreateCollectionScreenState
   final _nameCtrl = TextEditingController();
   Map<String, dynamic>? _data;
   String _source = 'scaffold';
+  double _imageCompleteness = 1.0;
   String? _error;
 
   @override
@@ -54,6 +55,11 @@ class _CreateCollectionScreenState
     });
 
     final slug = _toSlug(name);
+    final prefs = await SharedPreferences.getInstance();
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 20),
+    ));
 
     // 1. Local asset
     try {
@@ -64,22 +70,53 @@ class _CreateCollectionScreenState
         setState(() {
           _data = data;
           _source = 'local';
+          _imageCompleteness = 1.0;
           _step = _Step.preview;
         });
       }
       return;
     } catch (_) {}
 
-    // 2. Remote URL from settings
-    final prefs = await SharedPreferences.getInstance();
+    // 2. Proxy server (Coleka enrichment)
+    final proxyUrl =
+        (prefs.getString('proxy_server_url') ?? '').trim();
+    if (proxyUrl.isNotEmpty) {
+      try {
+        final resp = await dio.post<dynamic>(
+          '$proxyUrl/api/search-collection',
+          data: {'query': name},
+        );
+        final raw = resp.data;
+        final data = raw is String
+            ? jsonDecode(raw) as Map<String, dynamic>
+            : raw as Map<String, dynamic>;
+        final meta =
+            data['_meta'] as Map<String, dynamic>? ?? {};
+        final proxySource =
+            (meta['source'] as String?) ?? 'coleka';
+        // Only accept non-scaffold results from proxy
+        if (proxySource != 'scaffold') {
+          if (mounted) {
+            setState(() {
+              _data = data;
+              _source = proxySource;
+              _imageCompleteness =
+                  (meta['imageCompleteness'] as num?)
+                      ?.toDouble() ??
+                  1.0;
+              _step = _Step.preview;
+            });
+          }
+          return;
+        }
+      } catch (_) {}
+    }
+
+    // 3. Remote URL from settings
     final base =
         (prefs.getString('remote_collection_base_url') ?? '').trim();
     if (base.isNotEmpty) {
       try {
-        final dio = Dio(BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 15),
-        ));
         final resp = await dio.get<dynamic>('$base/$slug.json');
         final raw = resp.data;
         final data = raw is String
@@ -89,6 +126,7 @@ class _CreateCollectionScreenState
           setState(() {
             _data = data;
             _source = 'remote';
+            _imageCompleteness = 1.0;
             _step = _Step.preview;
           });
         }
@@ -96,11 +134,12 @@ class _CreateCollectionScreenState
       } catch (_) {}
     }
 
-    // 3. Scaffold fallback
+    // 4. Scaffold fallback
     if (mounted) {
       setState(() {
         _data = _buildScaffold(name, slug);
         _source = 'scaffold';
+        _imageCompleteness = 0.0;
         _step = _Step.preview;
       });
     }
@@ -281,6 +320,10 @@ class _CreateCollectionScreenState
                     label: 'Fichiers locaux',
                     text: 'assets/collections/{slug}.json'),
                 _InfoRow(
+                    icon: Icons.travel_explore_outlined,
+                    label: 'Proxy Coleka',
+                    text: 'URL proxy dans Paramètres → Serveur proxy'),
+                _InfoRow(
                     icon: Icons.cloud_outlined,
                     label: 'Serveur distant',
                     text: 'URL configurée dans Paramètres → Données'),
@@ -398,6 +441,36 @@ class _CreateCollectionScreenState
               ),
             ),
           ],
+          if (_imageCompleteness < 0.5 && _source != 'scaffold') ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.image_not_supported_outlined,
+                      color: Colors.orange.shade700, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Images incomplètes '
+                      '(${(_imageCompleteness * 100).round()}% des items). '
+                      'Vous pourrez les ajouter manuellement.',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.orange.shade800,
+                          height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!,
@@ -472,6 +545,7 @@ class _SearchingStatus extends StatefulWidget {
 class _SearchingStatusState extends State<_SearchingStatus> {
   static const _labels = [
     'Vérification des fichiers locaux…',
+    'Recherche sur Coleka.com…',
     'Requête vers le serveur distant…',
     'Génération du modèle…',
   ];
@@ -515,9 +589,13 @@ class _SourceBadge extends StatelessWidget {
     final String label;
     switch (source) {
       case 'local':
-        label = 'Fichier local';
+        label = 'Cache local';
         color = const Color(0xFF2563EB);
         bg = const Color(0xFFEFF6FF);
+      case 'coleka':
+        label = 'Coleka.com';
+        color = const Color(0xFF0EA5E9);
+        bg = const Color(0xFFE0F2FE);
       case 'remote':
         label = 'En ligne';
         color = AppTheme.owned;
