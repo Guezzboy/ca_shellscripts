@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../core/models/display_item.dart';
+import '../../../core/services/collection_export_service.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../widgets/item_card.dart';
 import 'item_detail_screen.dart';
@@ -153,6 +154,11 @@ class _CollectionDetailScreenState
               error: (_, __) => const SizedBox.shrink(),
             ),
             actions: [
+              IconButton(
+                onPressed: () => _exportCollection(),
+                icon: const Icon(Icons.share_outlined, size: 20),
+                tooltip: 'Exporter cette collection',
+              ),
               IconButton(
                 onPressed: () =>
                     setState(() => _videGrenierMode = !_videGrenierMode),
@@ -545,6 +551,24 @@ class _CollectionDetailScreenState
     }
 
     await Share.share(buf.toString(), subject: 'Wishlist — $name');
+  }
+
+  Future<void> _exportCollection() async {
+    try {
+      final exportService = CollectionExportService();
+      final json =
+          await exportService.exportCollection(widget.collectionId);
+      final collection =
+          ref.read(collectionByIdProvider(widget.collectionId)).valueOrNull;
+      final name = collection?.name ?? 'collection';
+      await Share.share(json, subject: 'Collection — $name');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur export : $e')),
+        );
+      }
+    }
   }
 
   Widget _buildVideGrenierList(List<DisplayItem> items) {

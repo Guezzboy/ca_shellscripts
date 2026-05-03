@@ -40,6 +40,9 @@ dependencies:
   # Barcode scanner
   mobile_scanner: ^5.0.0
 
+  # OCR / Text recognition
+  google_mlkit_text_recognition: ^0.14.0
+
   # Share sheet
   share_plus: ^9.0.0
 

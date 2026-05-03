@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -23,6 +24,10 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
   final _nameController = TextEditingController();
   final _numberController = TextEditingController();
   final _picker = ImagePicker();
+  final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+
+  bool _ocrRunning = false;
+  String? _ocrSuggestion;
 
   bool get _isDesktop =>
       Platform.isLinux || Platform.isWindows || Platform.isMacOS;
@@ -31,6 +36,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
   void dispose() {
     _nameController.dispose();
     _numberController.dispose();
+    _textRecognizer.close();
     super.dispose();
   }
 
@@ -218,6 +224,45 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
             hintText: 'Ex: Verre Mickey Mouse',
           ),
         ),
+        if (_ocrRunning)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: SizedBox(
+              height: 14,
+              width: 14,
+              child: CircularProgressIndicator(strokeWidth: 1.5),
+            ),
+          ),
+        if (_ocrSuggestion != null && !_ocrRunning) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 14, color: Colors.amber.shade700),
+              const SizedBox(width: 6),
+              const Text('Suggestion :',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              const SizedBox(width: 6),
+              ActionChip(
+                label: Text(_ocrSuggestion!,
+                    style: const TextStyle(fontSize: 12)),
+                avatar:
+                    const Icon(Icons.text_fields, size: 14),
+                onPressed: () {
+                  _nameController.text = _ocrSuggestion!;
+                  _nameController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: _ocrSuggestion!.length),
+                  );
+                  setState(() => _ocrSuggestion = null);
+                },
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => setState(() => _ocrSuggestion = null),
+                child: Icon(Icons.close, size: 16, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 8),
         TextField(
           controller: _numberController,
@@ -267,6 +312,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
       final paths =
           result.files.map((f) => f.path).whereType<String>().toList();
       setState(() => _imagePaths.addAll(paths));
+      if (paths.isNotEmpty) _runOcr(paths.last);
     }
   }
 
@@ -276,14 +322,47 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
       final files = await _picker.pickMultiImage(
           maxWidth: 1200, imageQuality: 85);
       if (files.isNotEmpty) {
-        setState(() => _imagePaths.addAll(files.map((f) => f.path)));
+        final paths = files.map((f) => f.path).toList();
+        setState(() => _imagePaths.addAll(paths));
+        _runOcr(paths.last);
       }
     } else {
       final xfile = await _picker.pickImage(
           source: source, maxWidth: 1200, imageQuality: 85);
       if (xfile != null) {
         setState(() => _imagePaths.add(xfile.path));
+        _runOcr(xfile.path);
       }
+    }
+  }
+
+  // ── OCR ────────────────────────────────────────────────────────────────────
+
+  Future<void> _runOcr(String imagePath) async {
+    setState(() {
+      _ocrRunning = true;
+      _ocrSuggestion = null;
+    });
+    try {
+      final inputImage = InputImage.fromFilePath(imagePath);
+      final recognizedText = await _textRecognizer.processImage(inputImage);
+      if (!mounted) return;
+
+      // Prendre le premier bloc de texte non vide comme suggestion
+      final blocks = recognizedText.blocks;
+      if (blocks.isNotEmpty) {
+        final firstLine = blocks.first.lines;
+        if (firstLine.isNotEmpty) {
+          final text = firstLine.first.text.trim();
+          if (text.isNotEmpty) {
+            setState(() => _ocrSuggestion = text);
+          }
+        }
+      }
+    } catch (_) {
+      // OCR failed silently — the user can type manually
+    } finally {
+      if (mounted) setState(() => _ocrRunning = false);
     }
   }
 

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
+import '../../../core/services/collection_export_service.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -22,16 +25,16 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(),
           const _SectionHeader('Données'),
           ListTile(
-            leading: const Icon(Icons.download_outlined),
+            leading: const Icon(Icons.share_outlined),
             title: const Text('Exporter les collections'),
-            subtitle: const Text('Export JSON (bientôt disponible)'),
-            onTap: () => _showComingSoon(context),
+            subtitle: const Text('Partager en JSON'),
+            onTap: () => _exportAll(context),
           ),
           ListTile(
-            leading: const Icon(Icons.upload_outlined),
+            leading: const Icon(Icons.download_outlined),
             title: const Text('Importer des collections'),
-            subtitle: const Text('Import JSON (bientôt disponible)'),
-            onTap: () => _showComingSoon(context),
+            subtitle: const Text('Depuis une URL ou un fichier'),
+            onTap: () => context.push('/download'),
           ),
           const _RemoteUrlTile(),
           const _ProxyUrlTile(),
@@ -40,7 +43,7 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.sync),
             title: const Text('Syncthing'),
-            subtitle: const Text('Sync locale via Wi-Fi (Phase 3)'),
+            subtitle: const Text('Sync locale via Wi-Fi (configuré sur CasaOS)'),
             onTap: () => _showComingSoon(context),
           ),
           const Divider(),
@@ -78,6 +81,23 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _exportAll(BuildContext context) async {
+    try {
+      final service = CollectionExportService();
+      final json = await service.exportAllCollections();
+      await Share.share(
+        json,
+        subject: 'Collections export',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur export : $e')),
+        );
+      }
+    }
   }
 
   void _showComingSoon(BuildContext context) {
