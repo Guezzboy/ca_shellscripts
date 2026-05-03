@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/services/collection_download_service.dart';
+import '../../../core/services/collection_search_service.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../widgets/search_result_card.dart';
 
 const _popularCollections = [
   (
@@ -50,13 +52,28 @@ class DownloadScreen extends ConsumerStatefulWidget {
 
 class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   final _urlController = TextEditingController();
+  final _searchController = TextEditingController();
   bool _downloading = false;
   String? _errorMessage;
   String? _successMessage;
 
+  // ── Search state ──
+  final _searchService = CollectionSearchService();
+  bool _proxyAvailable = false;
+  bool _isSearching = false;
+  List<CollectionSearchResult>? _searchResults;
+  String? _searchError;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkProxy();
+  }
+
   @override
   void dispose() {
     _urlController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -65,12 +82,54 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
     final collectionsAsync = ref.watch(collectionsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Télécharger une base')),
+      appBar: AppBar(title: const Text('Découvrir')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ── Recherche de collection ───────────────────────────────────
+            _buildSearchBar(),
+            if (_isSearching)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            if (_searchError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _buildFeedback(
+                    _searchError!, Colors.red.shade50, Colors.red.shade200,
+                    icon: Icons.error, iconColor: Colors.red),
+              ),
+            if (_searchResults != null && _searchResults!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Résultats',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+              ..._searchResults!.map((r) => _buildSearchResultCard(r)),
+              const SizedBox(height: 8),
+              const Divider(),
+            ] else if (_searchResults != null && _searchResults!.isEmpty &&
+                _searchError == null) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Aucune collection trouvée.',
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.brown.shade500),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Divider(),
+            ],
+
+            const SizedBox(height: 8),
+
             // ── Import fichier local ──────────────────────────────────────
             _buildLocalImportCard(),
             const SizedBox(height: 20),
@@ -245,6 +304,162 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         ],
       ),
     );
+  }
+
+  // ── Search bar ──────────────────────────────────────────────────────────
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  enabled: _proxyAvailable,
+                  decoration: InputDecoration(
+                    hintText: _proxyAvailable
+                        ? 'Rechercher une collection...'
+                        : 'Proxy de recherche non détecté',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchResults = null;
+                                _searchError = null;
+                              });
+                            },
+                          )
+                        : null,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    isDense: true,
+                    helperText:
+                        _proxyAvailable ? null : 'Lancez node server/index.js',
+                    helperStyle: TextStyle(
+                        fontSize: 11, color: Colors.orange.shade700),
+                  ),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) => _onSearch(),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _proxyAvailable
+                  ? ElevatedButton(
+                      onPressed: _isSearching ? null : _onSearch,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      child: const Text('Chercher',
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                    )
+                  : OutlinedButton(
+                      onPressed: () => _checkProxy().then((_) {
+                            if (mounted) setState(() {});
+                          }),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      child: const Text('Réessayer',
+                          style: TextStyle(fontSize: 13)),
+                    ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchResultCard(CollectionSearchResult result) {
+    final colName = result.collection.name;
+    final existingCollections = ref.read(collectionsProvider).valueOrNull;
+    final alreadyImported = existingCollections?.any(
+          (c) => c.name.toLowerCase() == colName.toLowerCase(),
+        ) ??
+        false;
+
+    return SearchResultCard(
+      result: result,
+      alreadyImported: alreadyImported,
+      onImport: () => _importResult(result),
+    );
+  }
+
+  // ── Search actions ───────────────────────────────────────────────────────
+
+  Future<void> _checkProxy() async {
+    final available = await _searchService.isProxyAvailable();
+    if (mounted) {
+      setState(() => _proxyAvailable = available);
+    }
+  }
+
+  Future<void> _onSearch() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+
+    setState(() {
+      _isSearching = true;
+      _searchError = null;
+      _searchResults = null;
+    });
+
+    final result = await _searchService.searchCollection(query);
+    if (!mounted) return;
+
+    setState(() {
+      _isSearching = false;
+      if (result != null) {
+        _searchResults = [result];
+      } else {
+        _searchError =
+            'Impossible de contacter le serveur de recherche. Vérifiez que le proxy est lancé.';
+      }
+    });
+  }
+
+  Future<void> _importResult(CollectionSearchResult result) async {
+    setState(() {
+      _downloading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+    try {
+      final service = CollectionDownloadService();
+      final imported =
+          await service.importJson(result.toImportJson());
+      await ref.read(collectionsProvider.notifier).refresh();
+      if (mounted) {
+        setState(() {
+          _downloading = false;
+          _successMessage =
+              '${result.collection.name} importée : ${imported.itemCount} items.';
+          _searchResults = null;
+          _searchController.clear();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _downloading = false;
+          _errorMessage = 'Erreur : ${e.toString()}';
+        });
+      }
+    }
   }
 
   Widget _buildFeedback(String message, Color bg, Color border,
