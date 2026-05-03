@@ -8,12 +8,15 @@ class ItemCard extends StatefulWidget {
   final DisplayItem item;
   final VoidCallback onTap;
   final VoidCallback onToggleOwned;
+  /// 3-way cycle: neutral → wanted → owned → neutral
+  final VoidCallback onCycle;
 
   const ItemCard({
     super.key,
     required this.item,
     required this.onTap,
     required this.onToggleOwned,
+    required this.onCycle,
   });
 
   @override
@@ -45,10 +48,10 @@ class _ItemCardState extends State<ItemCard>
     super.dispose();
   }
 
-  void _quickToggle() {
+  void _cycleState() {
     HapticFeedback.mediumImpact();
     _flashCtrl.forward(from: 0);
-    widget.onToggleOwned();
+    widget.onCycle();
   }
 
   @override
@@ -58,7 +61,7 @@ class _ItemCardState extends State<ItemCard>
 
     return GestureDetector(
       onTap: widget.onTap,
-      onLongPress: _quickToggle,
+      onLongPress: _cycleState,
       onHorizontalDragEnd: hasMultiplePhotos
           ? (d) => setState(() {
                 final v = d.primaryVelocity ?? 0;
@@ -125,18 +128,24 @@ class _ItemCardState extends State<ItemCard>
                       top: 3,
                       right: 3,
                       child: GestureDetector(
-                        onTap: _quickToggle,
+                        onTap: _cycleState,
                         child: Container(
                           width: 18,
                           height: 18,
                           decoration: BoxDecoration(
                             color: item.owned
                                 ? AppTheme.owned
-                                : Colors.black.withOpacity(0.30),
+                                : item.wanted
+                                    ? Colors.amber.shade700
+                                    : Colors.black.withOpacity(0.30),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            item.owned ? Icons.check : Icons.add,
+                            item.owned
+                                ? Icons.check
+                                : item.wanted
+                                    ? Icons.search
+                                    : Icons.add,
                             color: Colors.white,
                             size: 11,
                           ),
@@ -158,6 +167,24 @@ class _ItemCardState extends State<ItemCard>
                                 color: Colors.white, width: 1.5),
                           ),
                           child: const Icon(Icons.check,
+                              color: Colors.white, size: 11),
+                        ),
+                      ),
+                    // Wanted badge (bottom-right, only when wanted and not owned)
+                    if (item.wanted && !item.owned)
+                      Positioned(
+                        bottom: 5,
+                        right: 5,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade700,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white, width: 1.5),
+                          ),
+                          child: const Icon(Icons.search,
                               color: Colors.white, size: 11),
                         ),
                       ),

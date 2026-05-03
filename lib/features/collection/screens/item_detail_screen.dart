@@ -4,13 +4,13 @@ import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/models/display_item.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../core/providers/repository_providers.dart';
+import '../../../core/repositories/item_repository.dart';
 import '../../../core/repositories/owned_item_repository.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -46,9 +46,11 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
   final TextEditingController _noteCtrl = TextEditingController();
   Timer? _debounce;
   final _noteRepo = OwnedItemRepository();
+  final _itemRepo = ItemRepository();
   final _picker = ImagePicker();
   final _uuid = const Uuid();
   bool _toggling = false;
+  bool _bookExpanded = false;
   List<String> _userPhotos = [];
 
   bool get _isDesktop =>
@@ -488,6 +490,13 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                           const SizedBox(height: 12),
                           _buildMetadata(meta),
                         ],
+                        if (!_item.isCustom &&
+                            (_hasBookData || _bookExpanded)) ...[
+                          const SizedBox(height: 16),
+                          const Divider(height: 1),
+                          const SizedBox(height: 12),
+                          _buildBookDetails(),
+                        ],
                         if (_item.owned && !_item.isCustom) ...[
                           const SizedBox(height: 16),
                           const Divider(height: 1),
@@ -736,6 +745,23 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                         color: Colors.amber.shade800,
                         fontWeight: FontWeight.w600)),
               ),
+            if (_item.wanted && !_item.owned) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.amber.shade400),
+                ),
+                child: Text('🔍 Recherché',
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.amber.shade800,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ],
           ],
         ),
         if (_item.number != null) ...[
@@ -813,6 +839,262 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     );
   }
 
+  // ── Book details ───────────────────────────────────────────────────────
+
+  bool get _hasBookData =>
+      _item.isbn != null ||
+      _item.author != null ||
+      _item.publisher != null ||
+      _item.publishYear != null ||
+      _item.edition != null ||
+      _item.genre != null ||
+      _item.condition != null ||
+      _item.purchasePrice != null ||
+      _item.estimatedValue != null;
+
+  Widget _buildBookDetails() {
+    if (!_hasBookData && !_bookExpanded) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _bookExpanded = !_bookExpanded),
+          child: Row(
+            children: [
+              const Text('Détails',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textSecondary,
+                      letterSpacing: 0.8)),
+              const Spacer(),
+              Icon(
+                _bookExpanded
+                    ? Icons.expand_less
+                    : Icons.expand_more,
+                size: 18,
+                color: AppTheme.textSecondary,
+              ),
+            ],
+          ),
+        ),
+        if (_bookExpanded) ...[
+          const SizedBox(height: 8),
+          if (!_hasBookData)
+            const Text(
+              'Ajoutez des informations sur ce livre (ISBN, auteur, etc.).',
+              style:
+                  TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+          if (_item.isbn != null)
+            _BookRow(
+                label: 'ISBN', value: _item.isbn!,
+                onTap: () => _editBookField('ISBN', 'isbn', _item.isbn)),
+          if (_item.author != null)
+            _BookRow(
+                label: 'Auteur', value: _item.author!,
+                onTap: () =>
+                    _editBookField('Auteur', 'author', _item.author)),
+          if (_item.publisher != null)
+            _BookRow(
+                label: 'Éditeur', value: _item.publisher!,
+                onTap: () => _editBookField(
+                    'Éditeur', 'publisher', _item.publisher)),
+          if (_item.publishYear != null)
+            _BookRow(
+                label: 'Année', value: _item.publishYear!,
+                onTap: () => _editBookField(
+                    'Année de publication', 'publishYear', _item.publishYear)),
+          if (_item.edition != null)
+            _BookRow(
+                label: 'Édition', value: _item.edition!,
+                onTap: () =>
+                    _editBookField('Édition', 'edition', _item.edition)),
+          if (_item.genre != null)
+            _BookRow(
+                label: 'Genre', value: _item.genre!,
+                onTap: () =>
+                    _editBookField('Genre', 'genre', _item.genre)),
+          if (_item.condition != null)
+            _BookRow(
+                label: 'État', value: _item.condition!,
+                onTap: () => _editBookField(
+                    'État', 'condition', _item.condition)),
+          if (_item.purchasePrice != null)
+            _BookRow(
+                label: 'Prix payé',
+                value: '${_item.purchasePrice!.toStringAsFixed(2)} €',
+                onTap: () => _editBookField(
+                    'Prix payé', 'purchasePrice',
+                    _item.purchasePrice?.toStringAsFixed(2))),
+          if (_item.estimatedValue != null)
+            _BookRow(
+                label: 'Valeur estimée',
+                value: '${_item.estimatedValue!.toStringAsFixed(2)} €',
+                onTap: () => _editBookField(
+                    'Valeur estimée', 'estimatedValue',
+                    _item.estimatedValue?.toStringAsFixed(2))),
+
+          // "Ajouter un champ" button
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _showAddBookField(),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Ajouter un champ'),
+            style: OutlinedButton.styleFrom(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              textStyle: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _editBookField(
+      String label, String field, String? current) async {
+    final ctrl = TextEditingController(text: current ?? '');
+    final isNumeric = field == 'purchasePrice' || field == 'estimatedValue';
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(label),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType:
+              isNumeric ? TextInputType.number : TextInputType.text,
+          decoration: const InputDecoration(
+            hintText: 'Laisser vide pour supprimer',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Annuler'),
+          ),
+          if (current != null)
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(''),
+              child: const Text('Supprimer',
+                  style: TextStyle(color: Colors.red)),
+            ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    // Build update map (using SQL column names)
+    // Map Dart field names to SQL column names
+    const _dartToSql = {
+      'isbn': 'isbn',
+      'author': 'author',
+      'publisher': 'publisher',
+      'publishYear': 'publish_year',
+      'edition': 'edition',
+      'genre': 'genre',
+      'condition': 'condition',
+      'purchasePrice': 'purchase_price',
+      'estimatedValue': 'estimated_value',
+    };
+    final col = _dartToSql[field] ?? field;
+    final update = <String, dynamic?>{};
+    if (isNumeric) {
+      final val = double.tryParse(result.replaceAll(',', '.'));
+      update[col] = result.isEmpty ? null : val;
+    } else {
+      update[col] = result.isEmpty ? null : result;
+    }
+
+    await _itemRepo.updateBookFields(_item.id, update);
+
+    // Refresh local state
+    ref.invalidate(collectionItemsProvider(widget.collectionId));
+    if (mounted) {
+      final items = await ref
+          .read(collectionItemsProvider(widget.collectionId).future);
+      final fresh = items.where((i) => i.id == _item.id).firstOrNull;
+      if (fresh != null) setState(() => _item = fresh);
+    }
+  }
+
+  Future<void> _showAddBookField() async {
+    final fields = <String, String>{
+      'isbn': 'ISBN',
+      'author': 'Auteur',
+      'publisher': 'Éditeur',
+      'publishYear': 'Année de publication',
+      'edition': 'Édition / Tome',
+      'genre': 'Genre',
+      'condition': 'État',
+      'purchasePrice': 'Prix payé',
+      'estimatedValue': 'Valeur estimée',
+    };
+
+    final empty = fields.keys
+        .where((k) => switch (k) {
+              'isbn' => _item.isbn == null,
+              'author' => _item.author == null,
+              'publisher' => _item.publisher == null,
+              'publishYear' => _item.publishYear == null,
+              'edition' => _item.edition == null,
+              'genre' => _item.genre == null,
+              'condition' => _item.condition == null,
+              'purchasePrice' => _item.purchasePrice == null,
+              'estimatedValue' => _item.estimatedValue == null,
+              _ => false,
+            })
+        .toList();
+
+    if (empty.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Tous les champs sont déjà remplis.')),
+        );
+      }
+      return;
+    }
+
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              decoration: BoxDecoration(
+                  color: AppTheme.border,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Ajouter un champ',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 16)),
+            ),
+            ...empty.map((k) => ListTile(
+                  title: Text(fields[k]!),
+                  onTap: () => Navigator.of(ctx).pop(k),
+                )),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    await _editBookField(fields[chosen]!, chosen, null);
+  }
+
   Widget _buildNotesField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -856,24 +1138,117 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
               height: 24,
               child: CircularProgressIndicator(strokeWidth: 2)));
     }
-    return _item.owned
-        ? OutlinedButton.icon(
-            onPressed: _toggleOwned,
-            icon: const Icon(Icons.remove_circle_outline,
-                size: 16, color: Colors.red),
-            label: const Text('Retirer de la collection',
-                style: TextStyle(color: Colors.red)),
-            style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red)),
-          )
-        : ElevatedButton.icon(
-            onPressed: _toggleOwned,
-            icon: const Icon(Icons.check, size: 16),
-            label: const Text('Ajouter à la collection'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.owned,
-              foregroundColor: Colors.white,
+    return Row(
+      children: [
+        // "Je le cherche" button
+        Expanded(
+          child: _item.wanted
+              ? OutlinedButton.icon(
+                  onPressed: () => _toggleWanted(),
+                  icon: const Icon(Icons.close, size: 16),
+                  label: const Text('Ne plus chercher'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                    side: const BorderSide(color: AppTheme.border),
+                  ),
+                )
+              : OutlinedButton.icon(
+                  onPressed: () => _toggleWanted(),
+                  icon: Icon(Icons.search, size: 16,
+                      color: Colors.amber.shade700),
+                  label: Text('Je le cherche',
+                      style: TextStyle(color: Colors.amber.shade700)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.amber.shade400),
+                  ),
+                ),
+        ),
+        const SizedBox(width: 8),
+        // "Je le possède" button
+        Expanded(
+          child: _item.owned
+              ? OutlinedButton.icon(
+                  onPressed: _toggleOwned,
+                  icon: const Icon(Icons.remove_circle_outline,
+                      size: 16, color: Colors.red),
+                  label: const Text('Retirer',
+                      style: TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red)),
+                )
+              : ElevatedButton.icon(
+                  onPressed: _toggleOwned,
+                  icon: const Icon(Icons.check, size: 16),
+                  label: const Text('Je le possède'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.owned,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _toggleWanted() async {
+    if (_toggling) return;
+    setState(() => _toggling = true);
+    await ref
+        .read(collectionItemsProvider(widget.collectionId).notifier)
+        .toggleWanted(_item);
+    if (!mounted) return;
+    final items =
+        await ref.read(collectionItemsProvider(widget.collectionId).future);
+    final fresh = items.where((i) => i.id == _item.id).firstOrNull;
+    if (mounted) {
+      setState(() {
+        if (fresh != null) _item = fresh;
+        _toggling = false;
+      });
+    }
+  }
+}
+
+class _BookRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+  const _BookRow(
+      {required this.label, required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 100,
+              child: Text(label,
+                  style: const TextStyle(
+                      fontSize: 13, color: AppTheme.textSecondary)),
             ),
-          );
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(value,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary)),
+                  ),
+                  const Icon(Icons.edit_outlined,
+                      size: 14, color: AppTheme.textSecondary),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -68,6 +68,30 @@ class ItemRepository {
     return item;
   }
 
+  /// Update book-specific fields for an item.
+  /// [fields] keys are column names (isbn, author, publisher, publish_year,
+  /// edition, genre, condition, purchase_price, estimated_value).
+  /// A key present with a null value means "set the column to NULL" (clear).
+  /// A key absent means "leave this column unchanged".
+  Future<void> updateBookFields(
+      String itemId, Map<String, dynamic?> fields) async {
+    final db = await _db;
+    final map = <String, dynamic>{
+      'updated_at': DateTime.now().millisecondsSinceEpoch,
+    };
+    // Only include keys that were explicitly passed
+    const cols = [
+      'isbn', 'author', 'publisher', 'publish_year', 'edition',
+      'genre', 'condition', 'purchase_price', 'estimated_value',
+    ];
+    for (final col in cols) {
+      if (fields.containsKey(col)) {
+        map[col] = fields[col];
+      }
+    }
+    await db.update('items', map, where: 'id = ?', whereArgs: [itemId]);
+  }
+
   /// Returns DisplayItems combining base items with owned status.
   Future<List<DisplayItem>> getDisplayItems(String collectionId) async {
     final db = await _db;
@@ -76,6 +100,9 @@ class ItemRepository {
     final baseRows = await db.rawQuery('''
       SELECT
         i.id, i.name, i.number, i.image_url, i.metadata,
+        i.isbn, i.author, i.publisher, i.publish_year,
+        i.edition, i.genre, i.condition,
+        i.purchase_price, i.estimated_value, i.wanted,
         o.id AS owned_record_id
       FROM items i
       LEFT JOIN owned_items o
@@ -102,6 +129,16 @@ class ItemRepository {
         isRare: (meta?['rare'] as bool?) ?? false,
         metadata: meta,
         ownedRecordId: row['owned_record_id'] as String?,
+        isbn: row['isbn'] as String?,
+        author: row['author'] as String?,
+        publisher: row['publisher'] as String?,
+        publishYear: row['publish_year'] as String?,
+        edition: row['edition'] as String?,
+        genre: row['genre'] as String?,
+        condition: row['condition'] as String?,
+        purchasePrice: (row['purchase_price'] as num?)?.toDouble(),
+        estimatedValue: (row['estimated_value'] as num?)?.toDouble(),
+        wanted: (row['wanted'] as int?) == 1,
       );
     });
 
@@ -134,5 +171,13 @@ class ItemRepository {
     });
 
     return [...baseItems, ...customItems];
+  }
+
+  Future<void> toggleWanted(String itemId, bool wanted) async {
+    final db = await _db;
+    await db.update('items', {
+      'wanted': wanted ? 1 : 0,
+      'updated_at': DateTime.now().millisecondsSinceEpoch,
+    }, where: 'id = ?', whereArgs: [itemId]);
   }
 }

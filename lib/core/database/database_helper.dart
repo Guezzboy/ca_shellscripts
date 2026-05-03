@@ -3,7 +3,7 @@ import 'package:path/path.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'collection_app.db';
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 4;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -48,6 +48,16 @@ class DatabaseHelper {
         description TEXT,
         image_url TEXT,
         metadata TEXT,
+        isbn TEXT,
+        author TEXT,
+        publisher TEXT,
+        publish_year TEXT,
+        edition TEXT,
+        genre TEXT,
+        condition TEXT,
+        purchase_price REAL,
+        estimated_value REAL,
+        wanted INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       )
@@ -60,6 +70,7 @@ class DatabaseHelper {
         collection_id TEXT NOT NULL,
         owned INTEGER NOT NULL DEFAULT 1,
         notes TEXT,
+        user_photos TEXT,
         added_at INTEGER NOT NULL,
         FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
       )
@@ -92,6 +103,23 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       await db.execute(
           'ALTER TABLE owned_items ADD COLUMN user_photos TEXT');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE items ADD COLUMN isbn TEXT');
+      await db.execute('ALTER TABLE items ADD COLUMN author TEXT');
+      await db.execute('ALTER TABLE items ADD COLUMN publisher TEXT');
+      await db.execute('ALTER TABLE items ADD COLUMN publish_year TEXT');
+      await db.execute('ALTER TABLE items ADD COLUMN edition TEXT');
+      await db.execute('ALTER TABLE items ADD COLUMN genre TEXT');
+      await db.execute('ALTER TABLE items ADD COLUMN condition TEXT');
+      await db.execute(
+          'ALTER TABLE items ADD COLUMN purchase_price REAL');
+      await db.execute(
+          'ALTER TABLE items ADD COLUMN estimated_value REAL');
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+          'ALTER TABLE items ADD COLUMN wanted INTEGER NOT NULL DEFAULT 0');
     }
   }
 }

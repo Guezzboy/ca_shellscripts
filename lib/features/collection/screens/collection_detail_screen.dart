@@ -1,6 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../core/models/display_item.dart';
@@ -8,7 +11,7 @@ import '../../../shared/theme/app_theme.dart';
 import '../widgets/item_card.dart';
 import 'item_detail_screen.dart';
 
-enum _Filter { all, owned, missing }
+enum _Filter { all, owned, missing, wanted }
 
 class CollectionDetailScreen extends ConsumerStatefulWidget {
   final String collectionId;
@@ -25,10 +28,15 @@ class _CollectionDetailScreenState
   _Filter _filter = _Filter.all;
   String _search = '';
   final _searchController = TextEditingController();
+  bool _videGrenierMode = false;
 
   late final AnimationController _trophyCtrl;
   late final Animation<double> _trophyScale;
   bool _wasComplete = false;
+
+  late final AnimationController _bounceCtrl;
+  late final Animation<double> _bounceAnim;
+  bool _showEmptyOverlay = false;
 
   @override
   void initState() {
@@ -43,13 +51,45 @@ class _CollectionDetailScreenState
       TweenSequenceItem(tween: Tween(begin: 0.88, end: 1.12), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 1.12, end: 1.0), weight: 20),
     ]).animate(_trophyCtrl);
+
+    _bounceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _bounceAnim = Tween<double>(begin: -4, end: 4).animate(
+      CurvedAnimation(parent: _bounceCtrl, curve: Curves.easeInOut),
+    );
+
+    // Check if empty overlay was already shown
+    SharedPreferences.getInstance().then((prefs) {
+      final shown = prefs.getBool('onboarding_grid_tip_shown') ?? false;
+      if (mounted) setState(() => _showEmptyOverlay = !shown);
+    });
   }
 
   @override
   void dispose() {
     _trophyCtrl.dispose();
+    _bounceCtrl.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _dismissOverlay() async {
+    setState(() => _showEmptyOverlay = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_grid_tip_shown', true);
+  }
+
+  Future<void> _markAllOwned(List<DisplayItem> items) async {
+    final notifier =
+        ref.read(collectionItemsProvider(widget.collectionId).notifier);
+    for (final item in items) {
+      if (!item.owned) {
+        await notifier.toggleOwned(item);
+      }
+    }
+    await _dismissOverlay();
   }
 
   @override
@@ -69,8 +109,20 @@ class _CollectionDetailScreenState
         final isComplete = owned >= items.length;
         if (isComplete && !_wasComplete) _trophyCtrl.forward(from: 0);
         _wasComplete = isComplete;
+
+        // Dismiss empty overlay on first owned item
+        if (owned > 0 && _showEmptyOverlay) {
+          _dismissOverlay();
+        }
       });
     });
+
+    // Start/stop bounce animation based on overlay visibility
+    if (_showEmptyOverlay && !_bounceCtrl.isAnimating) {
+      _bounceCtrl.repeat(reverse: true);
+    } else if (!_showEmptyOverlay && _bounceCtrl.isAnimating) {
+      _bounceCtrl.stop();
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.bg,
@@ -83,19 +135,42 @@ class _CollectionDetailScreenState
             elevation: 0,
             scrolledUnderElevation: 1,
             title: collectionAsync.when(
-              data: (c) => Text(c?.name ?? '',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      letterSpacing: -0.3)),
+              data: (c) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(c?.name ?? '',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          letterSpacing: -0.3)),
+                  if (_videGrenierMode)
+                    const Text('Mode Vide-Grenier',
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.amber)),
+                ],
+              ),
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
             ),
+            actions: [
+              IconButton(
+                onPressed: () =>
+                    setState(() => _videGrenierMode = !_videGrenierMode),
+                icon: Icon(
+                  _videGrenierMode
+                      ? Icons.shopping_bag
+                      : Icons.shopping_bag_outlined,
+                  color: _videGrenierMode
+                      ? Colors.amber.shade700
+                      : AppTheme.textSecondary,
+                ),
+                tooltip: 'Mode Vide-Grenier',
+              ),
+            ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(94),
               child: Column(
                 children: [
-                  // Progress header
                   Container(
                     color: AppTheme.surface,
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -109,7 +184,6 @@ class _CollectionDetailScreenState
                       error: (_, __) => const SizedBox.shrink(),
                     ),
                   ),
-                  // Filter + search bar
                   Container(
                     color: AppTheme.surface,
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
@@ -127,38 +201,184 @@ class _CollectionDetailScreenState
           error: (e, _) => Center(child: Text('Erreur : $e')),
           data: (items) {
             final filtered = _applyFilter(items);
+
+            // Vide-grenier mode: compact list with swipe
+            if (_videGrenierMode) {
+              final vgItems = filtered
+                  .where((i) => i.wanted || i.owned)
+                  .toList();
+              if (vgItems.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'Aucun item recherché ou possédé.\nPassez en mode normal pour en ajouter.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                );
+              }
+              return _buildVideGrenierList(vgItems);
+            }
+
             if (filtered.isEmpty) {
               return Center(
                 child: Text(
-                  items.isEmpty ? 'Collection vide' : 'Aucun résultat',
+                  items.isEmpty ? 'Collection vide' : 'Aucun resultat',
                   style: const TextStyle(color: AppTheme.textSecondary),
                 ),
               );
             }
-            return GridView.builder(
-              padding: const EdgeInsets.all(10),
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 6,
-                mainAxisSpacing: 6,
-                childAspectRatio: 0.62,
-              ),
-              itemCount: filtered.length,
-              itemBuilder: (_, i) => ItemCard(
-                item: filtered[i],
-                onTap: () => showItemDetail(
-                    context, filtered[i], widget.collectionId),
-                onToggleOwned: () => ref
-                    .read(collectionItemsProvider(widget.collectionId)
-                        .notifier)
-                    .toggleOwned(filtered[i]),
-              ),
+
+            // Owned count for overlay logic
+            final ownedCount = items.where((i) => i.owned).length;
+            final showOverlay = _showEmptyOverlay && ownedCount == 0;
+
+            return Stack(
+              children: [
+                // Grid
+                GridView.builder(
+                  padding: const EdgeInsets.all(10),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 6,
+                    mainAxisSpacing: 6,
+                    childAspectRatio: 0.62,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (_, i) => ItemCard(
+                    item: filtered[i],
+                    onTap: () => showItemDetail(
+                        context, filtered[i], widget.collectionId),
+                    onToggleOwned: () => ref
+                        .read(collectionItemsProvider(widget.collectionId)
+                            .notifier)
+                        .toggleOwned(filtered[i]),
+                    onCycle: () => ref
+                        .read(collectionItemsProvider(widget.collectionId)
+                            .notifier)
+                        .cycleState(filtered[i]),
+                  ),
+                ),
+
+                // Empty state overlay (Positioned.fill so BackdropFilter covers full screen)
+                if (showOverlay)
+                  Positioned.fill(child: _buildEmptyOverlay(items)),
+              ],
             );
           },
         ),
       ),
+      floatingActionButton: _videGrenierMode
+          ? FloatingActionButton.extended(
+              onPressed: () => _shareWishlist(),
+              icon: const Icon(Icons.share),
+              label: const Text('Partager'),
+              backgroundColor: Colors.amber.shade700,
+              foregroundColor: Colors.white,
+            )
+          : null,
       bottomNavigationBar: _buildBottomBar(context),
+    );
+  }
+
+  Widget _buildEmptyOverlay(List<DisplayItem> allItems) {
+    return Stack(
+      children: [
+        // Blurred grid behind
+        Positioned.fill(
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: Container(color: Colors.black54),
+            ),
+          ),
+        ),
+
+        // Content
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Bouncing magnifying glass
+                AnimatedBuilder(
+                  animation: _bounceAnim,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _bounceAnim.value),
+                      child: child,
+                    );
+                  },
+                  child: const Icon(
+                    Icons.manage_search_rounded,
+                    size: 48,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                const Text(
+                  'Vous ne possedez encore aucun item.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                const Text(
+                  'Appui long sur un item pour l\'ajouter\na votre collection.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white60,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Arrow pointing down toward grid
+                AnimatedBuilder(
+                  animation: _bounceAnim,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _bounceAnim.value * 0.5),
+                      child: Transform.rotate(
+                        angle: 2.6, // pointing down-left
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 28,
+                    color: Colors.white38,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Mark all as owned button
+                ElevatedButton.icon(
+                  onPressed: () => _markAllOwned(allItems),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.owned,
+                    foregroundColor: Colors.white,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.done_all, size: 18),
+                  label: const Text('Marquer tout comme possede'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -176,7 +396,7 @@ class _CollectionDetailScreenState
         Row(
           children: [
             Text(
-              '$owned / $total items • $pctInt%',
+              '$owned / $total items \u2022 $pctInt%',
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -228,7 +448,7 @@ class _CollectionDetailScreenState
               controller: _searchController,
               onChanged: (v) => setState(() => _search = v),
               decoration: InputDecoration(
-                hintText: 'Rechercher…',
+                hintText: 'Rechercher\u2026',
                 hintStyle:
                     const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                 prefixIcon: const Icon(Icons.search, size: 18,
@@ -247,15 +467,21 @@ class _CollectionDetailScreenState
             onTap: () => setState(() => _filter = _Filter.all)),
         const SizedBox(width: 4),
         _FilterChip(
-            label: '✓',
+            label: '\u2713',
             active: _filter == _Filter.owned,
             activeColor: AppTheme.owned,
             onTap: () => setState(() => _filter = _Filter.owned)),
         const SizedBox(width: 4),
         _FilterChip(
-            label: '○',
+            label: '\u25CB',
             active: _filter == _Filter.missing,
             onTap: () => setState(() => _filter = _Filter.missing)),
+        const SizedBox(width: 4),
+        _FilterChip(
+            label: '🔍',
+            active: _filter == _Filter.wanted,
+            activeColor: Colors.amber.shade700,
+            onTap: () => setState(() => _filter = _Filter.wanted)),
       ],
     );
   }
@@ -295,6 +521,168 @@ class _CollectionDetailScreenState
     );
   }
 
+  void _shareWishlist() async {
+    final items =
+        ref.read(collectionItemsProvider(widget.collectionId)).valueOrNull;
+    if (items == null) return;
+    final wantedItems = items.where((i) => i.wanted).toList();
+    if (wantedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucun item dans la wishlist.')),
+      );
+      return;
+    }
+
+    final collection =
+        ref.read(collectionByIdProvider(widget.collectionId)).valueOrNull;
+    final name = collection?.name ?? 'Ma collection';
+    final buf = StringBuffer();
+    buf.writeln('📋 Wishlist — $name');
+    buf.writeln();
+    for (final item in wantedItems) {
+      final num = item.number != null ? '#${item.number} ' : '';
+      buf.writeln('• $num${item.name}');
+    }
+
+    await Share.share(buf.toString(), subject: 'Wishlist — $name');
+  }
+
+  Widget _buildVideGrenierList(List<DisplayItem> items) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: items.length,
+      itemBuilder: (_, i) {
+        final item = items[i];
+        return Dismissible(
+          key: ValueKey(item.id),
+          background: Container(
+            color: AppTheme.owned,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 20),
+            child: const Icon(Icons.check, color: Colors.white),
+          ),
+          secondaryBackground: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            child: const Icon(Icons.close, color: Colors.white),
+          ),
+          confirmDismiss: (direction) async {
+            if (direction == DismissDirection.startToEnd) {
+              // Swipe right → mark owned
+              if (!item.owned) {
+                await ref
+                    .read(collectionItemsProvider(widget.collectionId)
+                        .notifier)
+                    .toggleOwned(item);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context)
+                    ..clearSnackBars()
+                    ..showSnackBar(SnackBar(
+                      content: Text('"${item.name}" marqué comme possédé'),
+                      action: SnackBarAction(
+                        label: 'Annuler',
+                        onPressed: () => ref
+                            .read(collectionItemsProvider(widget.collectionId)
+                                .notifier)
+                            .toggleOwned(item),
+                      ),
+                    ));
+                }
+              }
+              return false; // Don't actually dismiss
+            } else {
+              // Swipe left → remove wanted / unmark owned
+              if (item.wanted && !item.owned) {
+                await ref
+                    .read(collectionItemsProvider(widget.collectionId)
+                        .notifier)
+                    .toggleWanted(item);
+              } else if (item.owned) {
+                await ref
+                    .read(collectionItemsProvider(widget.collectionId)
+                        .notifier)
+                    .toggleOwned(item);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context)
+                    ..clearSnackBars()
+                    ..showSnackBar(SnackBar(
+                      content: Text('"${item.name}" retiré'),
+                      action: SnackBarAction(
+                        label: 'Annuler',
+                        onPressed: () => ref
+                            .read(collectionItemsProvider(widget.collectionId)
+                                .notifier)
+                            .toggleOwned(item),
+                      ),
+                    ));
+                }
+              }
+              return false;
+            }
+          },
+          child: ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: item.imageUrl != null
+                    ? Image.network(item.imageUrl!, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                            color: const Color(0xFFEFEDE8),
+                            child: const Icon(Icons.image_outlined,
+                                size: 20, color: AppTheme.textSecondary)))
+                    : Container(
+                        color: const Color(0xFFEFEDE8),
+                        child: const Icon(Icons.image_outlined,
+                            size: 20, color: AppTheme.textSecondary)),
+              ),
+            ),
+            title: Text(
+              item.name,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: item.owned
+                    ? AppTheme.textPrimary
+                    : AppTheme.textSecondary,
+              ),
+            ),
+            subtitle: Row(
+              children: [
+                if (item.number != null) ...[
+                  Text('#${item.number}',
+                      style: const TextStyle(fontSize: 12)),
+                  const SizedBox(width: 8),
+                ],
+                if (item.wanted && !item.owned)
+                  Text('🔍 Recherché',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.amber.shade700)),
+                if (item.owned)
+                  const Text('✓ Possédé',
+                      style: TextStyle(
+                          fontSize: 12, color: AppTheme.owned)),
+              ],
+            ),
+            trailing: Icon(
+              item.owned
+                  ? Icons.check_circle
+                  : Icons.search,
+              color: item.owned
+                  ? AppTheme.owned
+                  : Colors.amber.shade700,
+            ),
+            onTap: () =>
+                showItemDetail(context, item, widget.collectionId),
+          ),
+        );
+      },
+    );
+  }
+
   List<DisplayItem> _applyFilter(List<DisplayItem> items) {
     var list = items;
     if (_search.isNotEmpty) {
@@ -308,10 +696,10 @@ class _CollectionDetailScreenState
     return switch (_filter) {
       _Filter.owned => list.where((i) => i.owned).toList(),
       _Filter.missing => list.where((i) => !i.owned).toList(),
+      _Filter.wanted => list.where((i) => i.wanted).toList(),
       _Filter.all => list,
     };
   }
-
 }
 
 class _FilterChip extends StatelessWidget {
@@ -338,8 +726,7 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: active ? color : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-              color: active ? color : AppTheme.border),
+          border: Border.all(color: active ? color : AppTheme.border),
         ),
         child: Text(
           label,
@@ -368,8 +755,7 @@ class _BarButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 16),
-        label: Text(label,
-            style: const TextStyle(fontSize: 13)),
+        label: Text(label, style: const TextStyle(fontSize: 13)),
       ),
     );
   }

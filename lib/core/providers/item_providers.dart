@@ -62,6 +62,39 @@ class CollectionItemsNotifier
     ref.invalidate(ownedCountProvider(arg));
   }
 
+  Future<void> toggleWanted(DisplayItem item) async {
+    if (item.isCustom) return;
+    final repo = ref.read(itemRepositoryProvider);
+    await repo.toggleWanted(item.id, !item.wanted);
+    ref.invalidateSelf();
+  }
+
+  /// Cycle state: neutral → wanted → owned → neutral
+  Future<void> cycleState(DisplayItem item) async {
+    if (item.isCustom) return;
+    final ownedRepo = ref.read(ownedItemRepositoryProvider);
+    final itemRepo = ref.read(itemRepositoryProvider);
+
+    if (!item.owned && !item.wanted) {
+      // neutral → wanted
+      await itemRepo.toggleWanted(item.id, true);
+    } else if (item.wanted && !item.owned) {
+      // wanted → owned (clear wanted first)
+      await itemRepo.toggleWanted(item.id, false);
+      await ownedRepo.markOwned(item.id, arg);
+    } else {
+      // owned → neutral (also clear wanted if set)
+      if (item.wanted) {
+        await itemRepo.toggleWanted(item.id, false);
+      }
+      if (item.ownedRecordId != null) {
+        await ownedRepo.markUnowned(item.ownedRecordId!);
+      }
+    }
+    ref.invalidateSelf();
+    ref.invalidate(ownedCountProvider(arg));
+  }
+
   Future<void> refresh() async {
     ref.invalidateSelf();
   }
@@ -82,6 +115,7 @@ final itemSearchProvider =
               imageUrl: i.imageUrl,
               owned: false,
               isCustom: false,
+              wanted: i.wanted,
             ))
         .toList();
   },

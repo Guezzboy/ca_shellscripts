@@ -37,6 +37,12 @@ dependencies:
   # Shared preferences
   shared_preferences: ^2.2.3
 
+  # Barcode scanner
+  mobile_scanner: ^5.0.0
+
+  # Share sheet
+  share_plus: ^9.0.0
+
   # Icons
   cupertino_icons: ^1.0.6
 
