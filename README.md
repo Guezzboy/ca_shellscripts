@@ -9,8 +9,10 @@
 
 - 🗂️ **Multi-collections** — gérez autant de collections que vous voulez (verres moutarde, cartes, figurines, vignettes...)
 - 🖼️ **Grille visuelle** — affichage style album Panini avec images grisées pour les items manquants
-- ✅ **Marqueur de possession** — appui long sur un item pour l'ajouter à votre collection, badge vert instantané
-- 🔍 **Fiche détail** — galerie photo swipeable, infos techniques, notes personnelles
+- ✅ **3 états par item** — neutre / recherché (🔍 badge ambre) / possédé (✓ badge vert). Cycle par appui long
+- 📱 **Scan ISBN** — scannez un code-barres de livre, récupération automatique des métadonnées via Open Library / Google Books
+- 📋 **Mode Vide-Grenier** — vue liste compacte avec swipe actions (droite → possédé, gauche → retirer), partage de wishlist
+- 🔍 **Fiche détail** — galerie photo swipeable, infos techniques, notes personnelles, double CTA (chercher / posséder)
 - 📥 **Import JSON** — téléchargez une collection existante depuis une URL ou un fichier local
 - 📷 **Photo personnalisée** — ajoutez vos propres photos depuis l'appareil photo ou la galerie
 - 💾 **100% offline** — toutes les données stockées localement en SQLite, aucun compte requis
@@ -62,7 +64,7 @@ lib/
 │   ├── models/                       # Modèles Dart (PODO)
 │   ├── repositories/                 # Accès base de données
 │   ├── providers/                    # Providers Riverpod
-│   └── services/                     # Service téléchargement HTTP
+│   └── services/                     # HTTP (download, ISBN lookup)
 └── features/
     ├── collection/                   # Écrans principaux (grille, liste)
     ├── add_item/                     # Ajout manuel + photo
@@ -84,6 +86,8 @@ lib/
 | Fichiers bureau | `file_picker`              | ^8.0.0    |
 | Préférences     | `shared_preferences`       | ^2.2.3    |
 | UUID            | `uuid`                     | ^4.4.0    |
+| Scan code-barre | `mobile_scanner`           | ^5.0.0    |
+| Partage texte   | `share_plus`               | ^9.0.0    |
 
 ---
 
@@ -132,7 +136,7 @@ Ces fichiers peuvent être hébergés sur **GitHub Pages** ou tout serveur stati
 ## 🗺️ Roadmap
 
 - [x] **Phase 1 — Core** : grille Panini, ajout manuel, marqueur possédé, SQLite
-- [ ] **Phase 2 — UX** : fiche détail avec galerie, appui long pour possession, barre de progression
+- [x] **Phase 2 — UX enrichie** : galerie swipeable, 3 états item (recherché/possédé), double CTA, scan ISBN, mode Vide-Grenier
 - [ ] **Phase 3 — Import intelligent** : recherche automatique de collection par nom
 - [ ] **Phase 4 — OCR** : Google ML Kit (hooks prêts dans `add_photo_screen.dart`)
 - [ ] **Phase 5 — Sync** : export/import JSON, Syncthing
