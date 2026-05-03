@@ -88,6 +88,7 @@ lib/
 | UUID            | `uuid`                     | ^4.4.0    |
 | Scan code-barre | `mobile_scanner`           | ^5.0.0    |
 | Partage texte   | `share_plus`               | ^9.0.0    |
+| OCR / Texte     | `google_mlkit_text_recognition` | ^0.14.0 |
 
 ---
 
@@ -137,9 +138,9 @@ Ces fichiers peuvent être hébergés sur **GitHub Pages** ou tout serveur stati
 
 - [x] **Phase 1 — Core** : grille Panini, ajout manuel, marqueur possédé, SQLite
 - [x] **Phase 2 — UX enrichie** : galerie swipeable, 3 états item (recherché/possédé), double CTA, scan ISBN, mode Vide-Grenier
-- [ ] **Phase 3 — Import intelligent** : recherche automatique de collection par nom
-- [ ] **Phase 4 — OCR** : Google ML Kit (hooks prêts dans `add_photo_screen.dart`)
-- [ ] **Phase 5 — Sync** : export/import JSON, Syncthing
+- [x] **Phase 3 — Import intelligent** : recherche automatique de collection via proxy Node.js (local + Coleka)
+- [x] **Phase 4 — OCR** : Google ML Kit text recognition, suggestion auto du nom depuis les photos
+- [x] **Phase 5 — Sync** : export JSON avec état owned/wanted, partage via share sheet, import existant
 
 ---
 
