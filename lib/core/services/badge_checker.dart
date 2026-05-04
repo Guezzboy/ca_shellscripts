@@ -4,9 +4,18 @@ import '../../core/repositories/collection_repository.dart';
 import '../../core/repositories/owned_item_repository.dart';
 import 'badge_service.dart';
 
+typedef ColRepoFactory = CollectionRepository Function();
+typedef OwnedRepoFactory = OwnedItemRepository Function();
+
 /// Centralized badge unlock checker.
 /// Call after key user actions to evaluate and show new badges.
+///
+/// Repository parameters default to real instances but can be injected for
+/// testing.
 class BadgeChecker {
+  static ColRepoFactory colRepo = () => CollectionRepository();
+  static OwnedRepoFactory ownedRepo = () => OwnedItemRepository();
+
   /// Show badge overlay if newly unlocked.
   static void _showIfNew(BuildContext context, String badgeId) {
     BadgeService.unlock(badgeId).then((badge) {
@@ -31,12 +40,10 @@ class BadgeChecker {
     }
 
     // Expert: owned items in 3+ collections
-    final colRepo = CollectionRepository();
-    final ownedRepo = OwnedItemRepository();
-    final collections = await colRepo.getAll();
+    final collections = await colRepo().getAll();
     int colsWithOwned = 0;
     for (final col in collections) {
-      final owned = await ownedRepo.countOwned(col.id);
+      final owned = await ownedRepo().countOwned(col.id);
       if (owned > 0) colsWithOwned++;
     }
     if (colsWithOwned >= 3) {
@@ -48,12 +55,10 @@ class BadgeChecker {
   static Future<void> afterToggleOwned(
       BuildContext context, String collectionId) async {
     // Collector: check if this collection is now 100% complete
-    final colRepo = CollectionRepository();
-    final ownedRepo = OwnedItemRepository();
-    final collection = await colRepo.getById(collectionId);
+    final collection = await colRepo().getById(collectionId);
     if (collection != null) {
       final totalItems = collection.itemCount;
-      final ownedCount = await ownedRepo.countOwned(collectionId);
+      final ownedCount = await ownedRepo().countOwned(collectionId);
       if (totalItems > 0 && ownedCount >= totalItems) {
         _showIfNew(context, 'collector');
       }
