@@ -271,13 +271,39 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                           ),
                         ),
                   // Info button
-                  const Icon(Icons.info_outline,
-                      color: Colors.white24, size: 22),
+                  Tooltip(
+                    message: 'Aide scanner',
+                    child: GestureDetector(
+                      onTap: () => _showScannerHelp(context),
+                      child: const Icon(Icons.info_outline,
+                          color: Colors.white70, size: 22),
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showScannerHelp(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Scanner'),
+        content: const Text(
+          'Mode Code : scanne un code-barres (ISBN, EAN) pour identifier '
+          'un objet et l\'ajouter à ta collection.\n\n'
+          'Mode Photo : prends une photo pour ajouter un objet personnalisé.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
