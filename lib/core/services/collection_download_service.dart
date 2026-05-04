@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/item.dart';
 import '../repositories/collection_repository.dart';
 import '../repositories/item_repository.dart';
+import '../repositories/owned_item_repository.dart';
 
 /// Supporte trois formats JSON :
 ///
@@ -36,6 +37,10 @@ class CollectionDownloadService {
 
   Future<({String collectionId, int itemCount})> importJson(
       Map<String, dynamic> data) async {
+    // Export format: {"version": 1, "exported_at": "...", "collections": [...]}
+    if (data.containsKey('collections') && data['collections'] is List) {
+      return _importExportFormat(data);
+    }
     // Structured format: root-level "items" array alongside "collection" object
     if (data.containsKey('collection') && data.containsKey('items')) {
       return _importStructuredFormat(data);
@@ -55,7 +60,7 @@ class CollectionDownloadService {
     final name = col['name'] as String? ?? 'Collection importée';
     final sourceId = col['id'] as String?;
 
-    final collection = await _collectionRepo.create(name);
+    final collection = await _collectionRepo.create(name, sourceUrl: sourceId);
     final collectionId = collection.id;
     final baseId = sourceId ?? collectionId;
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -102,7 +107,7 @@ class CollectionDownloadService {
     final version = data['version'] as int? ?? 1;
     final sourceId = data['id'] as String?;
 
-    final collection = await _collectionRepo.create(name);
+    final collection = await _collectionRepo.create(name, sourceUrl: sourceId);
     final collectionId = collection.id;
     final baseId = sourceId ?? collectionId;
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -185,5 +190,90 @@ class CollectionDownloadService {
       collection.copyWith(itemCount: items.length, lastSync: now),
     );
     return (collectionId: collectionId, itemCount: items.length);
+  }
+
+  // ── Format export (round-trip) ──────────────────────────────────────────
+
+  Future<({String collectionId, int itemCount})> _importExportFormat(
+      Map<String, dynamic> data) async {
+    final ownedRepo = OwnedItemRepository();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    var totalItems = 0;
+    String? firstCollectionId;
+
+    final collections = data['collections'] as List<dynamic>? ?? [];
+    for (final colRaw in collections) {
+      final col = colRaw as Map<String, dynamic>;
+      final name = col['name'] as String? ?? 'Collection importée';
+      final sourceUrl = col['source_url'] as String?;
+      final version = col['version'] as int? ?? 1;
+
+      final collection = await _collectionRepo.create(name, sourceUrl: sourceUrl);
+      final collectionId = collection.id;
+      firstCollectionId ??= collectionId;
+
+      final rawItems = col['items'] as List<dynamic>? ?? [];
+      final items = <Item>[];
+      final ownedItems = <({String itemId, bool owned, bool wanted})>[];
+
+      for (final raw in rawItems) {
+        final map = raw as Map<String, dynamic>;
+        final stableId = map['id'] as String?;
+        final itemId = stableId != null ? '${sourceUrl ?? collectionId}_$stableId' : _uuid.v4();
+        final item = Item(
+          id: itemId,
+          baseId: collectionId,
+          name: map['name'] as String? ?? 'Item',
+          number: map['number'] as String?,
+          description: map['description'] as String?,
+          imageUrl: ((map['images'] as List<dynamic>?)?.firstOrNull as String?) ??
+              map['image_url'] as String?,
+          metadata: map['metadata'] != null ? json.encode(map['metadata']) : null,
+          isbn: map['isbn'] as String?,
+          author: map['author'] as String?,
+          publisher: map['publisher'] as String?,
+          publishYear: map['publish_year']?.toString(),
+          createdAt: now,
+          updatedAt: now,
+        );
+        items.add(item);
+
+        // Restore owned/wanted state
+        final state = map['_state'] as Map<String, dynamic>?;
+        if (state != null && (state['owned'] == true || state['wanted'] == true)) {
+          ownedItems.add((
+            itemId: itemId,
+            owned: state['owned'] == true,
+            wanted: state['wanted'] == true,
+          ));
+        }
+      }
+
+      await _itemRepo.insertBatch(items);
+
+      // Restore owned records
+      for (final oi in ownedItems) {
+        if (oi.owned) {
+          await ownedRepo.markOwned(oi.itemId, collectionId);
+        }
+        if (oi.wanted) {
+          await _itemRepo.toggleWanted(oi.itemId, true);
+        }
+      }
+
+      await _collectionRepo.update(
+        collection.copyWith(
+          version: version,
+          itemCount: items.length,
+          lastSync: now,
+        ),
+      );
+      totalItems += items.length;
+    }
+
+    return (
+      collectionId: firstCollectionId ?? '',
+      itemCount: totalItems,
+    );
   }
 }

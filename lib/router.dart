@@ -6,6 +6,7 @@ import 'features/collection/screens/collection_detail_screen.dart';
 import 'features/collection/screens/create_collection_screen.dart';
 import 'features/add_item/screens/add_item_screen.dart';
 import 'features/add_item/screens/add_photo_screen.dart';
+import 'features/download/screens/download_screen.dart';
 import 'features/scanner/screens/scanner_screen.dart';
 import 'features/catalogue/screens/catalogue_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
@@ -87,6 +88,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/create-collection',
       builder: (context, state) => const CreateCollectionScreen(),
+    ),
+    GoRoute(
+      path: '/download',
+      builder: (context, state) => const DownloadScreen(),
     ),
   ],
 );

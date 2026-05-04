@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
@@ -76,7 +77,7 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.download_outlined),
             title: const Text('Importer des collections'),
             subtitle: const Text('Depuis une URL ou un fichier'),
-            onTap: () {},
+            onTap: () => GoRouter.of(context).push('/download'),
           ),
           const _RemoteUrlTile(),
           const _ProxyUrlTile(),
@@ -336,7 +337,7 @@ class _ProxyUrlTileState extends State<_ProxyUrlTile> {
     super.initState();
     SharedPreferences.getInstance().then((p) {
       if (mounted) {
-        setState(() => _url = p.getString('proxy_server_url') ?? '');
+        setState(() => _url = p.getString('search_proxy_url') ?? '');
       }
     });
   }
@@ -370,7 +371,7 @@ class _ProxyUrlTileState extends State<_ProxyUrlTile> {
     );
     if (result != null) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('proxy_server_url', result);
+      await prefs.setString('search_proxy_url', result);
       if (mounted) setState(() => _url = result);
     }
   }

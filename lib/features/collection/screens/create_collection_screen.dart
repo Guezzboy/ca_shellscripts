@@ -79,7 +79,7 @@ class _CreateCollectionScreenState
 
     // 2. Proxy server (Coleka enrichment)
     final proxyUrl =
-        (prefs.getString('proxy_server_url') ?? '').trim();
+        (prefs.getString('search_proxy_url') ?? '').trim();
     if (proxyUrl.isNotEmpty) {
       try {
         final resp = await dio.post<dynamic>(
