@@ -188,4 +188,56 @@ class ItemRepository {
     );
     return result ?? 0;
   }
+
+  /// Returns the [limit] most recent base items (by created_at DESC).
+  Future<List<Item>> getMostRecentBase(int limit) async {
+    final db = await _db;
+    final maps = await db.query(
+      'items',
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+    return maps.map(Item.fromMap).toList();
+  }
+
+  /// Returns the [limit] most recent custom items as raw maps
+  /// (id, name, number, collection_id, image_path, created_at).
+  Future<List<Map<String, dynamic>>> getMostRecentCustom(int limit) async {
+    final db = await _db;
+    return db.query(
+      'custom_items',
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+  }
+
+  /// Counts items (base + custom) added between [startMs] and [endMs],
+  /// grouped by collection ID. Returns map of collectionId → count.
+  Future<Map<String, int>> countAddedBetween(
+      int startMs, int endMs) async {
+    final db = await _db;
+    final result = <String, int>{};
+
+    // Base items — grouped by base_id
+    final baseRows = await db.rawQuery(
+      'SELECT base_id, COUNT(*) as cnt FROM items WHERE created_at >= ? AND created_at < ? GROUP BY base_id',
+      [startMs, endMs],
+    );
+    for (final row in baseRows) {
+      final colId = row['base_id'] as String;
+      result[colId] = (result[colId] ?? 0) + (row['cnt'] as int);
+    }
+
+    // Custom items — grouped by collection_id
+    final customRows = await db.rawQuery(
+      'SELECT collection_id, COUNT(*) as cnt FROM custom_items WHERE created_at >= ? AND created_at < ? GROUP BY collection_id',
+      [startMs, endMs],
+    );
+    for (final row in customRows) {
+      final colId = row['collection_id'] as String;
+      result[colId] = (result[colId] ?? 0) + (row['cnt'] as int);
+    }
+
+    return result;
+  }
 }

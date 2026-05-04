@@ -1,79 +1,97 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/collection_providers.dart';
+import '../../../core/services/badge_service.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../../shared/widgets/progress_ring.dart';
 import '../widgets/object_card.dart';
 
-/// Home screen — Hi-fi A variant from Colectio wireframes.
-/// Hero progress ring + journal feed.
+/// Home screen — data-driven with real progress ring and journal feed.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.themeTokens;
-    final collectionsAsync = ref.watch(collectionsProvider);
+    final statsAsync = ref.watch(homeStatsProvider);
 
     return Scaffold(
       backgroundColor: tokens.bg,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // ── greeting header ──
-            SliverToBoxAdapter(child: _GreetingHeader(tokens: tokens)),
-            // ── hero ring + floating cards ──
-            SliverToBoxAdapter(
-              child: collectionsAsync.when(
-                data: (collections) => _HeroSection(
-                  tokens: tokens,
-                  totalOwned: collections.fold<int>(
-                    0,
-                    (sum, c) => sum + c.itemCount,
-                  ),
-                  totalAll: collections.fold<int>(
-                    0,
-                    (sum, c) => sum + c.itemCount,
-                  ),
-                ),
-                loading: () => _HeroSection(tokens: tokens),
-                error: (_, __) => _HeroSection(tokens: tokens),
-              ),
-            ),
-            // ── journal: today ──
-            SliverToBoxAdapter(
-              child: _SectionLabel(tokens: tokens, text: "Aujourd'hui"),
-            ),
-            // Recent add card
-            SliverToBoxAdapter(child: _RecentAddCard(tokens: tokens)),
-            const SliverToBoxAdapter(child: SizedBox(height: 8)),
-            // Badge unlocked card
-            SliverToBoxAdapter(child: _BadgeCard(tokens: tokens)),
-            // ── journal: yesterday ──
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 10, bottom: 8),
-                child: _SectionLabel(tokens: tokens, text: 'Hier'),
-              ),
-            ),
-            SliverToBoxAdapter(child: _YesterdayCard(tokens: tokens)),
-
-            // Bottom padding (above nav bar)
-            const SliverToBoxAdapter(child: SizedBox(height: 90)),
-          ],
+        child: statsAsync.when(
+          data: (stats) => _HomeContent(tokens: tokens, stats: stats),
+          loading: () => const _HomeContent(tokens: null),
+          error: (_, __) => const _HomeContent(tokens: null),
         ),
       ),
     );
   }
 }
 
+class _HomeContent extends StatelessWidget {
+  final ThemeTokens? tokens;
+  final HomeStats? stats;
+  const _HomeContent({required this.tokens, this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = tokens ?? context.themeTokens;
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _GreetingHeader(tokens: t)),
+        SliverToBoxAdapter(
+          child: _HeroSection(
+            tokens: t,
+            totalOwned: stats?.totalOwned ?? 0,
+            totalAll: stats?.totalItems ?? 1,
+          ),
+        ),
+        // ── journal: today ──
+        SliverToBoxAdapter(
+          child: _SectionLabel(tokens: t, text: "Aujourd'hui"),
+        ),
+        SliverToBoxAdapter(
+          child: _RecentAddCard(tokens: t, stats: stats),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        SliverToBoxAdapter(
+          child: _BadgeCard(tokens: t, badge: stats?.lastBadge),
+        ),
+        // ── journal: yesterday ──
+        if (stats != null && stats!.yesterdayEntries.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10, bottom: 8),
+              child: _SectionLabel(tokens: t, text: 'Hier'),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: _YesterdayCard(
+              tokens: t,
+              stats: stats!,
+            ),
+          ),
+        ],
+        const SliverToBoxAdapter(child: SizedBox(height: 90)),
+      ],
+    );
+  }
+}
+
 // ── greeting ──
+String _greetingForHour(int hour) {
+  if (hour >= 6 && hour < 12) return 'Belle journée pour collectionner ☀️';
+  if (hour >= 12 && hour < 18) return 'Continue ta collection ☀️';
+  return 'Belle soirée de collection 🌙';
+}
+
 class _GreetingHeader extends StatelessWidget {
   final ThemeTokens tokens;
   const _GreetingHeader({required this.tokens});
 
   @override
   Widget build(BuildContext context) {
+    final hour = DateTime.now().hour;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
       decoration: BoxDecoration(
@@ -94,7 +112,7 @@ class _GreetingHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bonjour, Léa',
+                  'Bonjour',
                   style: TextStyle(
                     fontSize: 12,
                     color: tokens.ink.withOpacity(0.6),
@@ -102,7 +120,7 @@ class _GreetingHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Belle journée pour collectionner ☀️',
+                  _greetingForHour(hour),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -124,7 +142,7 @@ class _GreetingHeader extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              'L',
+              'C',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -162,8 +180,8 @@ class _HeroSection extends StatelessWidget {
 
   const _HeroSection({
     required this.tokens,
-    this.totalOwned = 0,
-    this.totalAll = 1,
+    required this.totalOwned,
+    required this.totalAll,
   });
 
   static const _floatingCards = [
@@ -179,7 +197,6 @@ class _HeroSection extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Center ring
           Center(
             child: ProgressRing(
               value: totalAll > 0 ? totalOwned / totalAll : 0.0,
@@ -212,7 +229,6 @@ class _HeroSection extends StatelessWidget {
               ),
             ),
           ),
-          // Floating mini cards
           ..._floatingCards.map(
             (c) => Positioned(
               top: c.top,
@@ -254,13 +270,51 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
+// ── time ago helper ──
+String _timeAgo(int timestampMs) {
+  final diff = DateTime.now().millisecondsSinceEpoch - timestampMs;
+  if (diff < 60 * 1000) return "à l'instant";
+  final mins = diff ~/ (60 * 1000);
+  if (mins < 60) return 'il y a ${mins}min';
+  final hours = mins ~/ 60;
+  if (hours < 24) return 'il y a ${hours}h';
+  final days = hours ~/ 24;
+  return 'il y a ${days}j';
+}
+
 // ── journal: recent add card ──
 class _RecentAddCard extends StatelessWidget {
   final ThemeTokens tokens;
-  const _RecentAddCard({required this.tokens});
+  final HomeStats? stats;
+
+  const _RecentAddCard({required this.tokens, this.stats});
 
   @override
   Widget build(BuildContext context) {
+    // Determine what to show
+    String? itemName;
+    String? collectionName;
+    String? timeAgo;
+    Color cardColor = const Color(0xFFF4A72B);
+    String? label;
+
+    if (stats != null) {
+      final item = stats!.lastAddedItem;
+      final custom = stats!.lastAddedCustom;
+      if (item != null) {
+        itemName = item.name;
+        collectionName = stats!.lastAddedCollectionName;
+        timeAgo = _timeAgo(item.createdAt);
+        label = item.name.substring(0, item.name.length.clamp(0, 8));
+      } else if (custom != null) {
+        itemName = custom['name'] as String?;
+        collectionName = stats!.lastAddedCollectionName;
+        timeAgo = _timeAgo(custom['created_at'] as int);
+        final n = itemName ?? '';
+        label = n.substring(0, n.length.clamp(0, 8));
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
@@ -279,8 +333,8 @@ class _RecentAddCard extends StatelessWidget {
         child: Row(
           children: [
             ObjectCard(
-              color: const Color(0xFFF4A72B),
-              label: 'Astérix',
+              color: cardColor,
+              label: label,
               width: 44,
               height: 56,
             ),
@@ -290,7 +344,7 @@ class _RecentAddCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Tu as ajouté',
+                    itemName != null ? 'Tu as ajouté' : 'En attente',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -299,7 +353,7 @@ class _RecentAddCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Astérix légionnaire',
+                    itemName ?? 'Ajoute ton premier objet',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -308,7 +362,9 @@ class _RecentAddCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    'Moutarde du Lion \u2022 il y a 2h',
+                    collectionName != null && timeAgo != null
+                        ? '$collectionName \u2022 $timeAgo'
+                        : 'Commence une collection !',
                     style: TextStyle(
                       fontSize: 10,
                       color: tokens.ink.withOpacity(0.5),
@@ -322,10 +378,16 @@ class _RecentAddCard extends StatelessWidget {
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: tokens.accent,
+                color: itemName != null
+                    ? tokens.accent
+                    : tokens.ink.withOpacity(0.15),
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.check, color: Colors.white, size: 14),
+              child: Icon(
+                itemName != null ? Icons.check : Icons.add,
+                color: itemName != null ? Colors.white : tokens.ink.withOpacity(0.4),
+                size: 14,
+              ),
             ),
           ],
         ),
@@ -337,10 +399,14 @@ class _RecentAddCard extends StatelessWidget {
 // ── journal: badge card ──
 class _BadgeCard extends StatelessWidget {
   final ThemeTokens tokens;
-  const _BadgeCard({required this.tokens});
+  final Badge? badge;
+
+  const _BadgeCard({required this.tokens, this.badge});
 
   @override
   Widget build(BuildContext context) {
+    if (badge == null) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
@@ -370,7 +436,7 @@ class _BadgeCard extends StatelessWidget {
                 color: Colors.white.withOpacity(0.25),
               ),
               alignment: Alignment.center,
-              child: const Text('🏆', style: TextStyle(fontSize: 18)),
+              child: Text(badge!.emoji, style: const TextStyle(fontSize: 18)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -386,9 +452,9 @@ class _BadgeCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Petit trésor',
-                    style: TextStyle(
+                  Text(
+                    badge!.name,
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
@@ -408,10 +474,13 @@ class _BadgeCard extends StatelessWidget {
 // ── journal: yesterday ──
 class _YesterdayCard extends StatelessWidget {
   final ThemeTokens tokens;
-  const _YesterdayCard({required this.tokens});
+  final HomeStats stats;
+  const _YesterdayCard({required this.tokens, required this.stats});
 
   @override
   Widget build(BuildContext context) {
+    final entries = stats.yesterdayEntries;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Container(
@@ -459,28 +528,36 @@ class _YesterdayCard extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: tokens.ink,
-                    height: 1.4,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '3 ajouts',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const TextSpan(text: ' dans '),
-                    TextSpan(
-                      text: 'One Piece',
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: tokens.ink.withOpacity(0.7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: entries.map((e) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1),
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: tokens.ink,
+                          height: 1.4,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: '${e.count} ajout${e.count > 1 ? 's' : ''}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const TextSpan(text: ' dans '),
+                          TextSpan(
+                            text: e.name,
+                            style: TextStyle(
+                              fontStyle: FontStyle.italic,
+                              color: tokens.ink.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  );
+                }).toList(),
               ),
             ),
           ],

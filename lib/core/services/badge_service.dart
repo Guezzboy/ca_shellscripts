@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A badge that can be unlocked by the user.
@@ -74,6 +75,7 @@ class BadgeDefinitions {
 /// Persists unlocked badges and triggers overlay display.
 class BadgeService {
   static const _unlockedKey = 'badges_unlocked';
+  static const _unlockedAtKey = 'badges_unlocked_at';
 
   /// Returns the set of unlocked badge IDs.
   static Future<Set<String>> unlockedBadgeIds() async {
@@ -100,13 +102,48 @@ class BadgeService {
 
     unlocked.add(badgeId);
     await prefs.setStringList(_unlockedKey, unlocked);
+
+    // Store unlock timestamp
+    final atMap = _decodeAtMap(prefs);
+    atMap[badgeId] = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setString(_unlockedAtKey, json.encode(atMap));
+
     return badge;
+  }
+
+  /// Returns the most recently unlocked badge, or null if none unlocked yet.
+  static Future<Badge?> lastUnlockedBadge() async {
+    final prefs = await SharedPreferences.getInstance();
+    final atMap = _decodeAtMap(prefs);
+    if (atMap.isEmpty) return null;
+
+    // Find the badge with the highest timestamp
+    String? lastId;
+    int lastTs = 0;
+    for (final entry in atMap.entries) {
+      if (entry.value > lastTs) {
+        lastTs = entry.value;
+        lastId = entry.key;
+      }
+    }
+    return lastId != null ? BadgeDefinitions.byId(lastId) : null;
   }
 
   /// Check if a badge is already unlocked.
   static Future<bool> isUnlocked(String badgeId) async {
     final ids = await unlockedBadgeIds();
     return ids.contains(badgeId);
+  }
+
+  static Map<String, int> _decodeAtMap(SharedPreferences prefs) {
+    final raw = prefs.getString(_unlockedAtKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = json.decode(raw) as Map<String, dynamic>;
+      return decoded.map((k, v) => MapEntry(k, (v as num).toInt()));
+    } catch (_) {
+      return {};
+    }
   }
 }
 
