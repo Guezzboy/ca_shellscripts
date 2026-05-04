@@ -51,6 +51,7 @@ class DownloadScreen extends ConsumerStatefulWidget {
 }
 
 class _DownloadScreenState extends ConsumerState<DownloadScreen> {
+  ThemeTokens get _tokens => context.themeTokens;
   final _urlController = TextEditingController();
   final _searchController = TextEditingController();
   bool _downloading = false;
@@ -217,11 +218,11 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
             ],
             if (_successMessage != null) ...[
               const SizedBox(height: 12),
-              _buildFeedback(_successMessage!, AppTheme.ownedLight,
-                  AppTheme.owned,
+              _buildFeedback(_successMessage!, _tokens.accentSoft,
+                  _tokens.accent,
                   icon: Icons.check_circle,
-                  iconColor: AppTheme.owned,
-                  textColor: AppTheme.owned),
+                  iconColor: _tokens.accent,
+                  textColor: _tokens.accent),
             ],
 
             // ── Collections déjà importées ────────────────────────────────
@@ -243,8 +244,8 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                 return Column(
                   children: collections
                       .map((c) => ListTile(
-                            leading: const Icon(Icons.check_circle,
-                                color: AppTheme.owned),
+                            leading: Icon(Icons.check_circle,
+                                color: _tokens.accent),
                             title: Text(c.name),
                             subtitle: Text('${c.itemCount} items'),
                             trailing: IconButton(
@@ -271,22 +272,22 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withAlpha(12),
+        color: _tokens.accent.withAlpha(12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: _tokens.ink.withOpacity(0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.folder_open, color: AppTheme.primary),
+              Icon(Icons.folder_open, color: _tokens.accent),
               const SizedBox(width: 8),
-              const Text('Importer un fichier JSON local',
+              Text('Importer un fichier JSON local',
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primary)),
+                      color: _tokens.accent)),
             ],
           ),
           const SizedBox(height: 6),
@@ -357,7 +358,7 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                   ? ElevatedButton(
                       onPressed: _isSearching ? null : _onSearch,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
+                        backgroundColor: _tokens.accent,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),

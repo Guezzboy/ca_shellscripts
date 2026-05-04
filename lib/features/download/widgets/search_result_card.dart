@@ -16,6 +16,7 @@ class SearchResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
     final col = result.collection;
     final meta = result.meta;
 
@@ -33,10 +34,10 @@ class SearchResultCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     col.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: tokens.ink,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -77,7 +78,7 @@ class SearchResultCard extends StatelessWidget {
                 minHeight: 4,
                 backgroundColor: Colors.grey.shade200,
                 color: meta.imageCompleteness > 0.5
-                    ? AppTheme.owned
+                    ? tokens.accent
                     : meta.imageCompleteness > 0.2
                         ? Colors.amber.shade600
                         : Colors.orange.shade300,
@@ -93,20 +94,20 @@ class SearchResultCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppTheme.ownedLight,
+                        color: tokens.accentSoft,
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.check_circle,
-                              size: 16, color: AppTheme.owned),
-                          SizedBox(width: 5),
+                              size: 16, color: tokens.accent),
+                          const SizedBox(width: 5),
                           Text('Déjà importée',
                               style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: AppTheme.owned)),
+                                  color: tokens.accent)),
                         ],
                       ),
                     )
@@ -115,7 +116,7 @@ class SearchResultCard extends StatelessWidget {
                       icon: const Icon(Icons.download, size: 16),
                       label: const Text('Importer'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
+                        backgroundColor: tokens.accent,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 8),
@@ -166,13 +167,14 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppTheme.textSecondary),
+        Icon(icon, size: 14, color: tokens.ink.withOpacity(0.6)),
         const SizedBox(width: 4),
         Text(label,
-            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            style: TextStyle(fontSize: 12, color: tokens.ink.withOpacity(0.6))),
       ],
     );
   }

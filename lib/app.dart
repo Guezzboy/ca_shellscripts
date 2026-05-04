@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/providers/theme_provider.dart';
 import 'router.dart';
 import 'shared/theme/app_theme.dart';
 
@@ -8,9 +9,11 @@ class CollectionApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeKey = ref.watch(themeProvider);
+
     return MaterialApp.router(
-      title: 'Collection App',
-      theme: AppTheme.light,
+      title: 'Colectio',
+      theme: AppTheme.buildTheme(themeKey),
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );

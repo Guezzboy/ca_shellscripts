@@ -246,11 +246,12 @@ class _CreateCollectionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: tokens.bg,
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
-        foregroundColor: AppTheme.textPrimary,
+        backgroundColor: tokens.surface,
+        foregroundColor: tokens.ink,
         elevation: 0,
         scrolledUnderElevation: 1,
         title: const Text('Nouvelle collection',
@@ -269,6 +270,7 @@ class _CreateCollectionScreenState
   }
 
   Widget _buildNameStep() {
+    final tokens = context.themeTokens;
     return SingleChildScrollView(
       key: const ValueKey('name'),
       padding: const EdgeInsets.all(24),
@@ -276,11 +278,11 @@ class _CreateCollectionScreenState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 8),
-          const Text('Nom de la collection',
+          Text('Nom de la collection',
               style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
-                  color: AppTheme.textPrimary)),
+                  color: tokens.ink)),
           const SizedBox(height: 12),
           TextField(
             controller: _nameCtrl,
@@ -302,18 +304,18 @@ class _CreateCollectionScreenState
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.04),
+              color: tokens.accent.withOpacity(0.04),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(color: tokens.ink.withOpacity(0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Comment ça marche ?',
+                Text('Comment ça marche ?',
                     style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
-                        color: AppTheme.textPrimary)),
+                        color: tokens.ink)),
                 const SizedBox(height: 8),
                 _InfoRow(
                     icon: Icons.folder_outlined,
@@ -340,6 +342,7 @@ class _CreateCollectionScreenState
   }
 
   Widget _buildSearchingStep() {
+    final tokens = context.themeTokens;
     return Center(
       key: const ValueKey('searching'),
       child: Column(
@@ -349,10 +352,10 @@ class _CreateCollectionScreenState
           const SizedBox(height: 24),
           Text(
             _nameCtrl.text.trim(),
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
-                color: AppTheme.textPrimary),
+                color: tokens.ink),
           ),
           const SizedBox(height: 8),
           const _SearchingStatus(),
@@ -362,6 +365,7 @@ class _CreateCollectionScreenState
   }
 
   Widget _buildPreviewStep() {
+    final tokens = context.themeTokens;
     final images = _previewImages;
     final count = _previewCount;
     final name = _previewName;
@@ -387,25 +391,25 @@ class _CreateCollectionScreenState
           ),
           const SizedBox(height: 12),
           Text(name,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
-                  color: AppTheme.textPrimary)),
+                  color: tokens.ink)),
           if (desc.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(desc,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.textSecondary,
+                    color: tokens.ink.withOpacity(0.6),
                     height: 1.4)),
           ],
           const SizedBox(height: 6),
           Text(
             '$count item${count != 1 ? "s" : ""}',
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textSecondary,
+                color: tokens.ink.withOpacity(0.6),
                 fontWeight: FontWeight.w600),
           ),
           if (images.isNotEmpty) ...[
@@ -505,34 +509,37 @@ class _InfoRow extends StatelessWidget {
       {required this.icon, required this.label, required this.text});
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 15, color: AppTheme.textSecondary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textSecondary,
-                      height: 1.3),
-                  children: [
-                    TextSpan(
-                        text: '$label — ',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary)),
-                    TextSpan(text: text),
-                  ],
-                ),
+  Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: tokens.ink.withOpacity(0.6)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                    fontSize: 13,
+                    color: tokens.ink.withOpacity(0.6),
+                    height: 1.3),
+                children: [
+                  TextSpan(
+                      text: '$label — ',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: tokens.ink)),
+                  TextSpan(text: text),
+                ],
               ),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SearchingStatus extends StatefulWidget {
@@ -567,15 +574,18 @@ class _SearchingStatusState extends State<_SearchingStatus> {
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedSwitcher(
+  Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
+    return AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: Text(
           _labels[_idx],
           key: ValueKey(_idx),
-          style: const TextStyle(
-              color: AppTheme.textSecondary, fontSize: 13),
+          style: TextStyle(
+              color: tokens.ink.withOpacity(0.6), fontSize: 13),
         ),
       );
+  }
 }
 
 class _SourceBadge extends StatelessWidget {
@@ -584,6 +594,7 @@ class _SourceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
     final Color color;
     final Color bg;
     final String label;
@@ -598,8 +609,8 @@ class _SourceBadge extends StatelessWidget {
         bg = const Color(0xFFE0F2FE);
       case 'remote':
         label = 'En ligne';
-        color = AppTheme.owned;
-        bg = AppTheme.ownedLight;
+        color = tokens.accent;
+        bg = tokens.accentSoft;
       default:
         label = 'Modèle généré';
         color = Colors.orange.shade700;

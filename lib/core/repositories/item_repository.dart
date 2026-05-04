@@ -74,7 +74,7 @@ class ItemRepository {
   /// A key present with a null value means "set the column to NULL" (clear).
   /// A key absent means "leave this column unchanged".
   Future<void> updateBookFields(
-      String itemId, Map<String, dynamic?> fields) async {
+      String itemId, Map<String, dynamic> fields) async {
     final db = await _db;
     final map = <String, dynamic>{
       'updated_at': DateTime.now().millisecondsSinceEpoch,

@@ -139,7 +139,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
               height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 4),
               decoration: BoxDecoration(
-                  color: AppTheme.border,
+                  color: _tokens.ink.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(2)),
             ),
             ListTile(
@@ -233,7 +233,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
               height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 4),
               decoration: BoxDecoration(
-                  color: AppTheme.border,
+                  color: _tokens.ink.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(2)),
             ),
             if (userIdx > 0)
@@ -325,9 +325,9 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
           builder: (ctx, setModal) => Container(
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(ctx).size.height * 0.65),
-            decoration: const BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            decoration: BoxDecoration(
+              color: _tokens.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Column(
               children: [
@@ -336,7 +336,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                   height: 4,
                   margin: const EdgeInsets.only(top: 12, bottom: 4),
                   decoration: BoxDecoration(
-                      color: AppTheme.border,
+                      color: _tokens.ink.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(2)),
                 ),
                 Padding(
@@ -384,8 +384,8 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                       ),
                       title: Text('Photo ${i + 1}',
                           style: const TextStyle(fontSize: 14)),
-                      trailing: const Icon(Icons.drag_handle,
-                          color: AppTheme.textSecondary),
+                      trailing: Icon(Icons.drag_handle,
+                          color: _tokens.ink.withOpacity(0.6)),
                     ),
                   ),
                 ),
@@ -446,6 +446,8 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
+  ThemeTokens get _tokens => context.themeTokens;
+
   @override
   Widget build(BuildContext context) {
     final images = _images;
@@ -455,8 +457,8 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
+      decoration: BoxDecoration(
+        color: _tokens.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
@@ -467,7 +469,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             height: 4,
             margin: const EdgeInsets.only(top: 12, bottom: 8),
             decoration: BoxDecoration(
-              color: AppTheme.border,
+              color: _tokens.ink.withOpacity(0.12),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -567,7 +569,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: AppTheme.owned,
+                color: _tokens.accent,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Row(
@@ -651,8 +653,8 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
                   color: i == _imageIndex
-                      ? AppTheme.primary
-                      : AppTheme.border,
+                      ? _tokens.accent
+                      : _tokens.ink.withOpacity(0.12),
                   width: i == _imageIndex ? 2 : 1,
                 ),
               ),
@@ -686,12 +688,12 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: AppTheme.bg,
+          color: _tokens.bg,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: _tokens.ink.withOpacity(0.12)),
         ),
-        child: const Icon(Icons.add_a_photo_outlined,
-            size: 18, color: AppTheme.textSecondary),
+        child: Icon(Icons.add_a_photo_outlined,
+            size: 18, color: _tokens.ink.withOpacity(0.6)),
       ),
     );
   }
@@ -721,11 +723,11 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             Expanded(
               child: Text(
                 _item.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.3,
-                  color: AppTheme.textPrimary,
+                  color: _tokens.ink,
                 ),
               ),
             ),
@@ -767,14 +769,14 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
         if (_item.number != null) ...[
           const SizedBox(height: 3),
           Text('#${_item.number}',
-              style: const TextStyle(
-                  fontSize: 14, color: AppTheme.textSecondary)),
+              style: TextStyle(
+                  fontSize: 14, color: _tokens.ink.withOpacity(0.6))),
         ],
         if (_item.isCustom) ...[
           const SizedBox(height: 4),
-          const Text('Item personnalisé',
+          Text('Item personnalisé',
               style:
-                  TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  TextStyle(fontSize: 12, color: _tokens.ink.withOpacity(0.6))),
         ],
       ],
     );
@@ -806,11 +808,11 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Détails',
+        Text('Détails',
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textSecondary,
+                color: _tokens.ink.withOpacity(0.6),
                 letterSpacing: 0.8)),
         const SizedBox(height: 8),
         ...rows.map((r) => Padding(
@@ -821,16 +823,16 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                   SizedBox(
                     width: 90,
                     child: Text(r.label,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.textSecondary)),
+                            color: _tokens.ink.withOpacity(0.6))),
                   ),
                   Expanded(
                     child: Text(r.value,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary)),
+                            color: _tokens.ink)),
                   ),
                 ],
               ),
@@ -862,11 +864,11 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
           onTap: () => setState(() => _bookExpanded = !_bookExpanded),
           child: Row(
             children: [
-              const Text('Détails',
+              Text('Détails',
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textSecondary,
+                      color: _tokens.ink.withOpacity(0.6),
                       letterSpacing: 0.8)),
               const Spacer(),
               Icon(
@@ -874,7 +876,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                     ? Icons.expand_less
                     : Icons.expand_more,
                 size: 18,
-                color: AppTheme.textSecondary,
+                color: _tokens.ink.withOpacity(0.6),
               ),
             ],
           ),
@@ -882,10 +884,10 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
         if (_bookExpanded) ...[
           const SizedBox(height: 8),
           if (!_hasBookData)
-            const Text(
+            Text(
               'Ajoutez des informations sur ce livre (ISBN, auteur, etc.).',
               style:
-                  TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  TextStyle(fontSize: 13, color: _tokens.ink.withOpacity(0.6)),
             ),
           if (_item.isbn != null)
             _BookRow(
@@ -1004,7 +1006,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
       'estimatedValue': 'estimated_value',
     };
     final col = _dartToSql[field] ?? field;
-    final update = <String, dynamic?>{};
+    final update = <String, dynamic>{};
     if (isNumeric) {
       final val = double.tryParse(result.replaceAll(',', '.'));
       update[col] = result.isEmpty ? null : val;
@@ -1073,7 +1075,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
               height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 4),
               decoration: BoxDecoration(
-                  color: AppTheme.border,
+                  color: _tokens.ink.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(2)),
             ),
             const Padding(
@@ -1099,11 +1101,11 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Notes',
+        Text('Notes',
             style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textSecondary,
+                color: _tokens.ink.withOpacity(0.6),
                 letterSpacing: 0.8)),
         const SizedBox(height: 8),
         TextField(
@@ -1148,8 +1150,8 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                   icon: const Icon(Icons.close, size: 16),
                   label: const Text('Ne plus chercher'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.textSecondary,
-                    side: const BorderSide(color: AppTheme.border),
+                    foregroundColor: _tokens.ink.withOpacity(0.6),
+                    side: BorderSide(color: _tokens.ink.withOpacity(0.12)),
                   ),
                 )
               : OutlinedButton.icon(
@@ -1181,7 +1183,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
                   icon: const Icon(Icons.check, size: 16),
                   label: const Text('Je le possède'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.owned,
+                    backgroundColor: _tokens.accent,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -1218,6 +1220,7 @@ class _BookRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -1228,21 +1231,21 @@ class _BookRow extends StatelessWidget {
             SizedBox(
               width: 100,
               child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 13, color: AppTheme.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 13, color: tokens.ink.withOpacity(0.6))),
             ),
             Expanded(
               child: Row(
                 children: [
                   Expanded(
                     child: Text(value,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary)),
+                            color: tokens.ink)),
                   ),
-                  const Icon(Icons.edit_outlined,
-                      size: 14, color: AppTheme.textSecondary),
+                  Icon(Icons.edit_outlined,
+                      size: 14, color: tokens.ink.withOpacity(0.6)),
                 ],
               ),
             ),

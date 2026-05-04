@@ -98,6 +98,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
   }
 
   Future<void> _showIsbnConfirmation(BookData book, String isbn) async {
+    final tokens = context.themeTokens;
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -114,7 +115,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                  color: AppTheme.border,
+                  color: tokens.ink.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(2)),
             ),
             if (book.coverUrl != null)
@@ -133,8 +134,8 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
             if (book.subtitle != null) ...[
               const SizedBox(height: 4),
               Text(book.subtitle!,
-                  style: const TextStyle(
-                      fontSize: 14, color: AppTheme.textSecondary),
+                  style: TextStyle(
+                      fontSize: 14, color: tokens.ink.withOpacity(0.6)),
                   textAlign: TextAlign.center),
             ],
             const SizedBox(height: 12),
@@ -146,8 +147,8 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
               _infoRow('Pages', book.pageCount.toString()),
             const SizedBox(height: 16),
             Text('ISBN: $isbn',
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textSecondary)),
+                style: TextStyle(
+                    fontSize: 12, color: tokens.ink.withOpacity(0.6))),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -164,7 +165,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Ajouter ce livre'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.owned,
+                      backgroundColor: tokens.accent,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -186,6 +187,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
   }
 
   Widget _infoRow(String label, String value) {
+    final tokens = context.themeTokens;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -193,8 +195,8 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
           SizedBox(
             width: 80,
             child: Text(label,
-                style: const TextStyle(
-                    fontSize: 13, color: AppTheme.textSecondary)),
+                style: TextStyle(
+                    fontSize: 13, color: tokens.ink.withOpacity(0.6))),
           ),
           Expanded(
             child: Text(value,
@@ -467,7 +469,7 @@ class _SearchResultTile extends StatelessWidget {
       trailing: ElevatedButton(
         onPressed: onMark,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.owned,
+          backgroundColor: context.themeTokens.accent,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           visualDensity: VisualDensity.compact,
@@ -540,22 +542,22 @@ class _CreateTab extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text('Auteur: $prefillAuthor',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppTheme.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 12, color: context.themeTokens.ink.withOpacity(0.6))),
             ),
           if (prefillPublisher != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text('Éditeur: $prefillPublisher',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppTheme.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 12, color: context.themeTokens.ink.withOpacity(0.6))),
             ),
           if (prefillYear != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text('Année: $prefillYear',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppTheme.textSecondary)),
+                  style: TextStyle(
+                      fontSize: 12, color: context.themeTokens.ink.withOpacity(0.6))),
             ),
           const SizedBox(height: 12),
           TextField(

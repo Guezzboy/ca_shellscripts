@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/collection.dart';
-import '../repositories/collection_repository.dart';
-import '../repositories/owned_item_repository.dart';
 import 'repository_providers.dart';
 
 // All collections list

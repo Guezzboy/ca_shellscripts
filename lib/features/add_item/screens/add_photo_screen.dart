@@ -202,17 +202,18 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
   // ── Form ─────────────────────────────────────────────────────────────────
 
   Widget _buildForm() {
+    final tokens = context.themeTokens;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.photo_library, size: 16, color: AppTheme.primary),
+            Icon(Icons.photo_library, size: 16, color: tokens.accent),
             const SizedBox(width: 6),
             Text(
               '${_imagePaths.length} photo${_imagePaths.length > 1 ? "s" : ""}',
-              style: const TextStyle(
-                  color: AppTheme.primary, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: tokens.accent, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -239,8 +240,8 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
             children: [
               Icon(Icons.auto_awesome, size: 14, color: Colors.amber.shade700),
               const SizedBox(width: 6),
-              const Text('Suggestion :',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              Text('Suggestion :',
+                  style: TextStyle(fontSize: 12, color: tokens.ink.withOpacity(0.6))),
               const SizedBox(width: 6),
               ActionChip(
                 label: Text(_ocrSuggestion!,

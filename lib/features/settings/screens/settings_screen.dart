@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../../core/services/collection_export_service.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -12,18 +12,59 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.themeTokens;
+    final themeKey = ref.watch(themeProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Paramètres')),
+      backgroundColor: tokens.bg,
+      appBar: AppBar(
+        title: const Text('Réglages'),
+        backgroundColor: tokens.bg,
+      ),
       body: ListView(
         children: [
-          const _SectionHeader('Application'),
+          _SectionHeader('Apparence', tokens),
+          // Theme picker
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                _ThemeOption(
+                  label: 'Solaire',
+                  color: const Color(0xFFF4A72B),
+                  active: themeKey == 'solaire',
+                  onTap: () =>
+                      ref.read(themeProvider.notifier).setTheme('solaire'),
+                ),
+                const SizedBox(width: 8),
+                _ThemeOption(
+                  label: 'Naturel',
+                  color: const Color(0xFF94A87A),
+                  active: themeKey == 'naturel',
+                  onTap: () =>
+                      ref.read(themeProvider.notifier).setTheme('naturel'),
+                ),
+                const SizedBox(width: 8),
+                _ThemeOption(
+                  label: 'Nuit',
+                  color: const Color(0xFFF4B73A),
+                  active: themeKey == 'nuit',
+                  dark: true,
+                  onTap: () =>
+                      ref.read(themeProvider.notifier).setTheme('nuit'),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          _SectionHeader('Application', tokens),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('Version'),
             trailing: const Text('1.0.0'),
           ),
           const Divider(),
-          const _SectionHeader('Données'),
+          _SectionHeader('Données', tokens),
           ListTile(
             leading: const Icon(Icons.share_outlined),
             title: const Text('Exporter les collections'),
@@ -34,20 +75,21 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.download_outlined),
             title: const Text('Importer des collections'),
             subtitle: const Text('Depuis une URL ou un fichier'),
-            onTap: () => context.push('/download'),
+            onTap: () {},
           ),
           const _RemoteUrlTile(),
           const _ProxyUrlTile(),
           const Divider(),
-          const _SectionHeader('Sync'),
+          _SectionHeader('Sync', tokens),
           ListTile(
             leading: const Icon(Icons.sync),
             title: const Text('Syncthing'),
-            subtitle: const Text('Sync locale via Wi-Fi (configuré sur CasaOS)'),
+            subtitle:
+                const Text('Sync locale via Wi-Fi (configuré sur CasaOS)'),
             onTap: () => _showComingSoon(context),
           ),
           const Divider(),
-          const _SectionHeader('Danger zone'),
+          _SectionHeader('Danger zone', tokens),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text('Effacer toutes les données',
@@ -55,7 +97,7 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => _confirmClearAll(context, ref),
           ),
           const Divider(),
-          const _SectionHeader('À propos'),
+          _SectionHeader('À propos', tokens),
           ListTile(
             leading: const Icon(Icons.code),
             title: const Text('Code source'),
@@ -69,10 +111,10 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 40),
           Center(
             child: Text(
-              'Collection App v1.0.0\nFait avec ❤️ par Guezz',
+              'Colectio v1.0.0\nFait avec ❤️ par Guezz',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.brown.shade400,
+                color: tokens.ink.withOpacity(0.5),
                 fontSize: 12,
               ),
             ),
@@ -138,10 +180,76 @@ class SettingsScreen extends ConsumerWidget {
       }
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Toutes les données ont été effacées.')),
+          const SnackBar(
+              content: Text('Toutes les données ont été effacées.')),
         );
       }
     }
+  }
+}
+
+class _ThemeOption extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool active;
+  final bool dark;
+  final VoidCallback onTap;
+
+  const _ThemeOption({
+    required this.label,
+    required this.color,
+    required this.active,
+    this.dark = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: dark ? const Color(0xFF1C1A17) : color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: active ? color : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: dark ? Colors.white70 : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -160,8 +268,7 @@ class _RemoteUrlTileState extends State<_RemoteUrlTile> {
     super.initState();
     SharedPreferences.getInstance().then((p) {
       if (mounted) {
-        setState(() =>
-            _url = p.getString('remote_collection_base_url') ?? '');
+        setState(() => _url = p.getString('remote_collection_base_url') ?? '');
       }
     });
   }
@@ -178,8 +285,7 @@ class _RemoteUrlTileState extends State<_RemoteUrlTile> {
           keyboardType: TextInputType.url,
           decoration: const InputDecoration(
             hintText: 'https://example.com/collections',
-            helperText:
-                'Le slug est ajouté : …/{nom-collection}.json',
+            helperText: 'Le slug est ajouté : …/{nom-collection}.json',
             helperMaxLines: 2,
           ),
         ),
@@ -188,8 +294,7 @@ class _RemoteUrlTileState extends State<_RemoteUrlTile> {
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Annuler')),
           ElevatedButton(
-              onPressed: () =>
-                  Navigator.of(ctx).pop(ctrl.text.trim()),
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
               child: const Text('Enregistrer')),
         ],
       ),
@@ -209,11 +314,6 @@ class _RemoteUrlTileState extends State<_RemoteUrlTile> {
           _url.isEmpty ? 'Non configurée' : _url,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-              fontSize: 13,
-              color: _url.isEmpty
-                  ? AppTheme.textSecondary
-                  : AppTheme.textPrimary),
         ),
         onTap: _edit,
       );
@@ -252,8 +352,7 @@ class _ProxyUrlTileState extends State<_ProxyUrlTile> {
           decoration: const InputDecoration(
             hintText: 'http://localhost:3000',
             helperText:
-                'Serveur Node.js local (server/index.js). '
-                'Lance-le avec : node server/index.js',
+                'Serveur Node.js local (server/index.js). Lance-le avec : node server/index.js',
             helperMaxLines: 3,
           ),
         ),
@@ -282,11 +381,6 @@ class _ProxyUrlTileState extends State<_ProxyUrlTile> {
           _url.isEmpty ? 'Non configuré — recherche Coleka désactivée' : _url,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-              fontSize: 13,
-              color: _url.isEmpty
-                  ? AppTheme.textSecondary
-                  : AppTheme.textPrimary),
         ),
         onTap: _edit,
       );
@@ -294,7 +388,8 @@ class _ProxyUrlTileState extends State<_ProxyUrlTile> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  const _SectionHeader(this.title);
+  final ThemeTokens tokens;
+  const _SectionHeader(this.title, this.tokens);
 
   @override
   Widget build(BuildContext context) {
@@ -305,7 +400,7 @@ class _SectionHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: AppTheme.primary,
+          color: tokens.accentDeep,
           letterSpacing: 1.2,
         ),
       ),

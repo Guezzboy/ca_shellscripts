@@ -23,6 +23,45 @@ class ItemCard extends StatefulWidget {
   State<ItemCard> createState() => _ItemCardState();
 }
 
+/// Builds item card border/background matching wireframe card states.
+class _CardDecoration {
+  final ThemeTokens tokens;
+  _CardDecoration(this.tokens);
+
+  BoxDecoration build(bool owned, bool wanted) {
+    if (owned) {
+      return BoxDecoration(
+        color: tokens.accentSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: tokens.accent, width: 1.3),
+      );
+    }
+    // Missing / wanted: grey dashed border with light fill
+    return BoxDecoration(
+      color: tokens.ink.withOpacity(0.04),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: tokens.ink.withOpacity(0.3),
+        strokeAlign: BorderSide.strokeAlignInside,
+      ),
+      // Dashed effect via custom gradient background
+    );
+  }
+
+  Widget buildCheckmark(ThemeTokens tokens) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: tokens.accent,
+      ),
+      alignment: Alignment.center,
+      child: const Icon(Icons.check, color: Colors.white, size: 11),
+    );
+  }
+}
+
 class _ItemCardState extends State<ItemCard>
     with SingleTickerProviderStateMixin {
   int _photoIndex = 0;
@@ -56,8 +95,10 @@ class _ItemCardState extends State<ItemCard>
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
     final item = widget.item;
     final hasMultiplePhotos = item.imagePaths.length > 1;
+    final deco = _CardDecoration(tokens);
 
     return GestureDetector(
       onTap: widget.onTap,
@@ -81,19 +122,15 @@ class _ItemCardState extends State<ItemCard>
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppTheme.owned.withOpacity(_flashOpacity.value),
-                    borderRadius: BorderRadius.circular(4),
+                    color: tokens.accent.withOpacity(_flashOpacity.value),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
           ],
         ),
         child: Container(
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            border: Border.all(color: AppTheme.border),
-            borderRadius: BorderRadius.circular(4),
-          ),
+          decoration: deco.build(item.owned, item.wanted),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -105,8 +142,8 @@ class _ItemCardState extends State<ItemCard>
                   children: [
                     ClipRRect(
                       borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(3)),
-                      child: _buildImage(item),
+                          const BorderRadius.vertical(top: Radius.circular(11)),
+                      child: _buildImage(item, tokens),
                     ),
                     // Number badge (top-left)
                     if (item.number != null)
@@ -115,18 +152,18 @@ class _ItemCardState extends State<ItemCard>
                         left: 5,
                         child: Text(
                           item.number!,
-                          style: const TextStyle(
-                            color: AppTheme.numberRed,
+                          style: TextStyle(
+                            color: tokens.accentDeep,
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
                           ),
                         ),
                       ),
-                    // Quick-toggle icon (top-right, always visible)
+                    // Quick-toggle icon (top-right)
                     Positioned(
-                      top: 3,
-                      right: 3,
+                      top: 4,
+                      right: 4,
                       child: GestureDetector(
                         onTap: _cycleState,
                         child: Container(
@@ -134,10 +171,10 @@ class _ItemCardState extends State<ItemCard>
                           height: 18,
                           decoration: BoxDecoration(
                             color: item.owned
-                                ? AppTheme.owned
+                                ? tokens.accent
                                 : item.wanted
                                     ? Colors.amber.shade700
-                                    : Colors.black.withOpacity(0.30),
+                                    : tokens.ink.withOpacity(0.30),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -152,25 +189,14 @@ class _ItemCardState extends State<ItemCard>
                         ),
                       ),
                     ),
-                    // Owned badge (bottom-right of image)
+                    // Owned checkmark (bottom-right of image)
                     if (item.owned)
                       Positioned(
                         bottom: 5,
                         right: 5,
-                        child: Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: AppTheme.owned,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: Colors.white, width: 1.5),
-                          ),
-                          child: const Icon(Icons.check,
-                              color: Colors.white, size: 11),
-                        ),
+                        child: deco.buildCheckmark(tokens),
                       ),
-                    // Wanted badge (bottom-right, only when wanted and not owned)
+                    // Wanted badge
                     if (item.wanted && !item.owned)
                       Positioned(
                         bottom: 5,
@@ -179,7 +205,7 @@ class _ItemCardState extends State<ItemCard>
                           width: 18,
                           height: 18,
                           decoration: BoxDecoration(
-                            color: Colors.amber.shade700,
+                            color: tokens.accentDeep,
                             shape: BoxShape.circle,
                             border: Border.all(
                                 color: Colors.white, width: 1.5),
@@ -188,14 +214,14 @@ class _ItemCardState extends State<ItemCard>
                               color: Colors.white, size: 11),
                         ),
                       ),
-                    // Rare star (bottom-left)
+                    // Rare star
                     if (item.isRare)
                       const Positioned(
                         bottom: 4,
                         left: 4,
                         child: Text('⭐', style: TextStyle(fontSize: 10)),
                       ),
-                    // Photo dots (bottom-center)
+                    // Photo dots
                     if (hasMultiplePhotos)
                       Positioned(
                         bottom: 4,
@@ -223,7 +249,10 @@ class _ItemCardState extends State<ItemCard>
                 ),
               ),
               // Separator
-              Container(height: 1, color: AppTheme.border),
+              Container(
+                height: 1,
+                color: tokens.ink.withOpacity(0.08),
+              ),
               // Name zone
               Expanded(
                 flex: 2,
@@ -239,8 +268,8 @@ class _ItemCardState extends State<ItemCard>
                         fontSize: 9.5,
                         fontWeight: FontWeight.w600,
                         color: item.owned
-                            ? AppTheme.textPrimary
-                            : AppTheme.textSecondary,
+                            ? tokens.ink
+                            : tokens.ink.withOpacity(0.5),
                         height: 1.2,
                       ),
                     ),
@@ -254,24 +283,24 @@ class _ItemCardState extends State<ItemCard>
     );
   }
 
-  Widget _buildImage(DisplayItem item) {
+  Widget _buildImage(DisplayItem item, ThemeTokens tokens) {
     Widget img;
     if (item.imagePaths.isNotEmpty) {
       img = Image.file(
         File(item.imagePaths[_photoIndex]),
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
+        errorBuilder: (_, __, ___) => _placeholder(tokens),
       );
     } else if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
       img = Image.network(
         item.imageUrl!,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(),
+        errorBuilder: (_, __, ___) => _placeholder(tokens),
         loadingBuilder: (_, child, progress) =>
-            progress == null ? child : _loading(progress),
+            progress == null ? child : _loading(progress, tokens),
       );
     } else {
-      return _placeholder();
+      return _placeholder(tokens);
     }
 
     if (!item.owned) {
@@ -289,21 +318,22 @@ class _ItemCardState extends State<ItemCard>
     return img;
   }
 
-  Widget _placeholder() => Container(
-        color: const Color(0xFFEFEDE8),
-        child: const Icon(Icons.image_outlined,
-            size: 28, color: Color(0xFFBBB8B2)),
+  Widget _placeholder(ThemeTokens tokens) => Container(
+        color: tokens.ink.withOpacity(0.05),
+        child: Icon(Icons.image_outlined,
+            size: 28, color: tokens.ink.withOpacity(0.15)),
       );
 
-  Widget _loading(ImageChunkEvent progress) => Container(
-        color: const Color(0xFFEFEDE8),
+  Widget _loading(ImageChunkEvent progress, ThemeTokens tokens) => Container(
+        color: tokens.ink.withOpacity(0.05),
         child: Center(
           child: CircularProgressIndicator(
             strokeWidth: 1.5,
             value: progress.expectedTotalBytes != null
-                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                ? progress.cumulativeBytesLoaded /
+                    progress.expectedTotalBytes!
                 : null,
-            color: AppTheme.textSecondary,
+            color: tokens.ink.withOpacity(0.5),
           ),
         ),
       );

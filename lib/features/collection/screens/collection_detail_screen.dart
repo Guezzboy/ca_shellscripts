@@ -95,6 +95,7 @@ class _CollectionDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.themeTokens;
     final collectionAsync =
         ref.watch(collectionByIdProvider(widget.collectionId));
     final itemsAsync =
@@ -126,13 +127,13 @@ class _CollectionDetailScreenState
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.bg,
+      backgroundColor: tokens.bg,
       body: NestedScrollView(
         headerSliverBuilder: (context, _) => [
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppTheme.surface,
-            foregroundColor: AppTheme.textPrimary,
+            backgroundColor: tokens.surface,
+            foregroundColor: tokens.ink,
             elevation: 0,
             scrolledUnderElevation: 1,
             title: collectionAsync.when(
@@ -168,7 +169,7 @@ class _CollectionDetailScreenState
                       : Icons.shopping_bag_outlined,
                   color: _videGrenierMode
                       ? Colors.amber.shade700
-                      : AppTheme.textSecondary,
+                      : tokens.ink.withOpacity(0.6),
                 ),
                 tooltip: 'Mode Vide-Grenier',
               ),
@@ -178,7 +179,7 @@ class _CollectionDetailScreenState
               child: Column(
                 children: [
                   Container(
-                    color: AppTheme.surface,
+                    color: tokens.surface,
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
                     child: itemsAsync.when(
                       data: (items) => ownedAsync.when(
@@ -191,7 +192,7 @@ class _CollectionDetailScreenState
                     ),
                   ),
                   Container(
-                    color: AppTheme.surface,
+                    color: tokens.surface,
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
                     child: _buildFilterBar(),
                   ),
@@ -214,11 +215,11 @@ class _CollectionDetailScreenState
                   .where((i) => i.wanted || i.owned)
                   .toList();
               if (vgItems.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
                     'Aucun item recherché ou possédé.\nPassez en mode normal pour en ajouter.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.textSecondary),
+                    style: TextStyle(color: tokens.ink.withOpacity(0.6)),
                   ),
                 );
               }
@@ -229,7 +230,7 @@ class _CollectionDetailScreenState
               return Center(
                 child: Text(
                   items.isEmpty ? 'Collection vide' : 'Aucun resultat',
-                  style: const TextStyle(color: AppTheme.textSecondary),
+                  style: TextStyle(color: tokens.ink.withOpacity(0.6)),
                 ),
               );
             }
@@ -288,6 +289,7 @@ class _CollectionDetailScreenState
   }
 
   Widget _buildEmptyOverlay(List<DisplayItem> allItems) {
+    final tokens = context.themeTokens;
     return Stack(
       children: [
         // Blurred grid behind
@@ -370,7 +372,7 @@ class _CollectionDetailScreenState
                 ElevatedButton.icon(
                   onPressed: () => _markAllOwned(allItems),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.owned,
+                    backgroundColor: tokens.accent,
                     foregroundColor: Colors.white,
                     padding:
                         const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -389,6 +391,7 @@ class _CollectionDetailScreenState
   }
 
   Widget _buildProgressHeader(List<DisplayItem> items, int owned) {
+    final tokens = context.themeTokens;
     final total = items.length;
     final pct = total > 0 ? (owned / total).clamp(0.0, 1.0) : 0.0;
     final isComplete = total > 0 && pct == 1.0;
@@ -403,18 +406,18 @@ class _CollectionDetailScreenState
           children: [
             Text(
               '$owned / $total items \u2022 $pctInt%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: tokens.ink,
               ),
             ),
             if (custom > 0) ...[
               const SizedBox(width: 6),
               Text(
                 '($custom perso)',
-                style: const TextStyle(
-                    fontSize: 11, color: AppTheme.textSecondary),
+                style: TextStyle(
+                    fontSize: 11, color: tokens.ink.withOpacity(0.6)),
               ),
             ],
             const Spacer(),
@@ -445,6 +448,7 @@ class _CollectionDetailScreenState
   }
 
   Widget _buildFilterBar() {
+    final tokens = context.themeTokens;
     return Row(
       children: [
         Expanded(
@@ -456,9 +460,9 @@ class _CollectionDetailScreenState
               decoration: InputDecoration(
                 hintText: 'Rechercher\u2026',
                 hintStyle:
-                    const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                prefixIcon: const Icon(Icons.search, size: 18,
-                    color: AppTheme.textSecondary),
+                    TextStyle(fontSize: 13, color: tokens.ink.withOpacity(0.6)),
+                prefixIcon: Icon(Icons.search, size: 18,
+                    color: tokens.ink.withOpacity(0.6)),
                 contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 isDense: true,
               ),
@@ -475,7 +479,7 @@ class _CollectionDetailScreenState
         _FilterChip(
             label: '\u2713',
             active: _filter == _Filter.owned,
-            activeColor: AppTheme.owned,
+            activeColor: tokens.accent,
             onTap: () => setState(() => _filter = _Filter.owned)),
         const SizedBox(width: 4),
         _FilterChip(
@@ -493,12 +497,13 @@ class _CollectionDetailScreenState
   }
 
   Widget _buildBottomBar(BuildContext context) {
+    final tokens = context.themeTokens;
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
-          border: Border(top: BorderSide(color: AppTheme.border)),
+        decoration: BoxDecoration(
+          color: tokens.surface,
+          border: Border(top: BorderSide(color: tokens.ink.withOpacity(0.15))),
         ),
         child: Row(
           children: [
@@ -572,6 +577,7 @@ class _CollectionDetailScreenState
   }
 
   Widget _buildVideGrenierList(List<DisplayItem> items) {
+    final tokens = context.themeTokens;
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: items.length,
@@ -580,7 +586,7 @@ class _CollectionDetailScreenState
         return Dismissible(
           key: ValueKey(item.id),
           background: Container(
-            color: AppTheme.owned,
+            color: tokens.accent,
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.only(left: 20),
             child: const Icon(Icons.check, color: Colors.white),
@@ -655,12 +661,12 @@ class _CollectionDetailScreenState
                     ? Image.network(item.imageUrl!, fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                             color: const Color(0xFFEFEDE8),
-                            child: const Icon(Icons.image_outlined,
-                                size: 20, color: AppTheme.textSecondary)))
+                            child: Icon(Icons.image_outlined,
+                                size: 20, color: tokens.ink.withOpacity(0.6))))
                     : Container(
                         color: const Color(0xFFEFEDE8),
-                        child: const Icon(Icons.image_outlined,
-                            size: 20, color: AppTheme.textSecondary)),
+                        child: Icon(Icons.image_outlined,
+                            size: 20, color: tokens.ink.withOpacity(0.6))),
               ),
             ),
             title: Text(
@@ -669,8 +675,8 @@ class _CollectionDetailScreenState
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: item.owned
-                    ? AppTheme.textPrimary
-                    : AppTheme.textSecondary,
+                    ? tokens.ink
+                    : tokens.ink.withOpacity(0.6),
               ),
             ),
             subtitle: Row(
@@ -686,9 +692,9 @@ class _CollectionDetailScreenState
                           fontSize: 12,
                           color: Colors.amber.shade700)),
                 if (item.owned)
-                  const Text('✓ Possédé',
+                  Text('✓ Possédé',
                       style: TextStyle(
-                          fontSize: 12, color: AppTheme.owned)),
+                          fontSize: 12, color: tokens.accent)),
               ],
             ),
             trailing: Icon(
@@ -696,7 +702,7 @@ class _CollectionDetailScreenState
                   ? Icons.check_circle
                   : Icons.search,
               color: item.owned
-                  ? AppTheme.owned
+                  ? tokens.accent
                   : Colors.amber.shade700,
             ),
             onTap: () =>
@@ -741,7 +747,8 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = activeColor ?? AppTheme.primary;
+    final tokens = context.themeTokens;
+    final color = activeColor ?? tokens.accent;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -750,14 +757,14 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: active ? color : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: active ? color : AppTheme.border),
+          border: Border.all(color: active ? color : tokens.ink.withOpacity(0.15)),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: active ? Colors.white : AppTheme.textSecondary,
+            color: active ? Colors.white : tokens.ink.withOpacity(0.6),
           ),
         ),
       ),
