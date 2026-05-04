@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/providers/collection_providers.dart';
+import '../../../core/providers/collection_providers.dart' hide HomeStats;
 import '../../../shared/theme/app_theme.dart';
 import '../widgets/collection_card.dart';
 
 class CollectionsListScreen extends ConsumerWidget {
   const CollectionsListScreen({super.key});
 
+  String _sortLabel(CollectionSortMode mode) => switch (mode) {
+        CollectionSortMode.dateNewest => 'Plus récent',
+        CollectionSortMode.dateOldest => 'Plus ancien',
+        CollectionSortMode.nameAsc => 'Nom A–Z',
+        CollectionSortMode.nameDesc => 'Nom Z–A',
+        CollectionSortMode.completionAsc => 'Progression ↑',
+        CollectionSortMode.completionDesc => 'Progression ↓',
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.themeTokens;
-    final collectionsAsync = ref.watch(collectionsProvider);
+    final sortMode = ref.watch(collectionSortModeProvider);
+    final collectionsAsync = ref.watch(sortedCollectionsProvider);
 
     return Scaffold(
       backgroundColor: tokens.bg,
@@ -19,6 +29,29 @@ class CollectionsListScreen extends ConsumerWidget {
         title: const Text('Collections'),
         backgroundColor: tokens.bg,
         actions: [
+          PopupMenuButton<CollectionSortMode>(
+            icon: const Icon(Icons.sort_outlined, size: 22),
+            tooltip: 'Trier',
+            initialValue: sortMode,
+            onSelected: (mode) =>
+                ref.read(collectionSortModeProvider.notifier).state = mode,
+            itemBuilder: (_) => CollectionSortMode.values
+                .map((m) => PopupMenuItem(
+                      value: m,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (m == sortMode)
+                            Icon(Icons.check, size: 16, color: tokens.accent)
+                          else
+                            const SizedBox(width: 16),
+                          const SizedBox(width: 8),
+                          Text(_sortLabel(m)),
+                        ],
+                      ),
+                    ))
+                .toList(),
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, size: 22),
             onPressed: () => context.push('/settings'),
@@ -29,12 +62,12 @@ class CollectionsListScreen extends ConsumerWidget {
         loading: () => const Center(
             child: CircularProgressIndicator(strokeWidth: 1.5)),
         error: (e, _) => Center(child: Text('Erreur : $e')),
-        data: (collections) {
-          if (collections.isEmpty) {
+        data: (entries) {
+          if (entries.isEmpty) {
             return _EmptyState(
               tokens: tokens,
               onCreate: () => context.push('/create-collection'),
-              onDownload: () {},
+              onDownload: () => context.push('/download'),
             );
           }
           return Column(
@@ -42,15 +75,16 @@ class CollectionsListScreen extends ConsumerWidget {
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.only(top: 8),
-                  itemCount: collections.length,
+                  itemCount: entries.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 4),
                   itemBuilder: (context, index) {
-                    final col = collections[index];
+                    final entry = entries[index];
                     return CollectionCard(
-                      collection: col,
-                      onTap: () => context.push('/collection/${col.id}'),
-                      onDelete: () =>
-                          _confirmDelete(context, ref, col.id, col.name),
+                      collection: entry.collection,
+                      onTap: () =>
+                          context.push('/collection/${entry.collection.id}'),
+                      onDelete: () => _confirmDelete(context, ref,
+                          entry.collection.id, entry.collection.name),
                     );
                   },
                 ),
@@ -72,7 +106,7 @@ class CollectionsListScreen extends ConsumerWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: () => context.push('/download'),
                           icon: const Icon(Icons.download, size: 18),
                           label: const Text('Importer'),
                         ),

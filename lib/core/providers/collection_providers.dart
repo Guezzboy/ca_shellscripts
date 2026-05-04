@@ -76,6 +76,59 @@ final ownedCountProvider =
   return repo.countOwned(collectionId);
 });
 
+// ── Collection sorting ──────────────────────────────────────────────────────
+
+enum CollectionSortMode {
+  dateNewest,
+  dateOldest,
+  nameAsc,
+  nameDesc,
+  completionAsc,
+  completionDesc,
+}
+
+final collectionSortModeProvider =
+    StateProvider<CollectionSortMode>((ref) => CollectionSortMode.dateNewest);
+
+/// Collections with owned counts, sorted by [collectionSortModeProvider].
+final sortedCollectionsProvider = FutureProvider<
+    List<({Collection collection, int owned})>>((ref) async {
+  final sortMode = ref.watch(collectionSortModeProvider);
+  final collections = await ref.watch(collectionsProvider.future);
+  final ownedRepo = ref.watch(ownedItemRepositoryProvider);
+
+  final result = <({Collection collection, int owned})>[];
+  for (final col in collections) {
+    final owned = await ownedRepo.countOwned(col.id);
+    result.add((collection: col, owned: owned));
+  }
+
+  switch (sortMode) {
+    case CollectionSortMode.dateNewest:
+      result.sort((a, b) => b.collection.createdAt.compareTo(a.collection.createdAt));
+    case CollectionSortMode.dateOldest:
+      result.sort((a, b) => a.collection.createdAt.compareTo(b.collection.createdAt));
+    case CollectionSortMode.nameAsc:
+      result.sort((a, b) => a.collection.name.compareTo(b.collection.name));
+    case CollectionSortMode.nameDesc:
+      result.sort((a, b) => b.collection.name.compareTo(a.collection.name));
+    case CollectionSortMode.completionAsc:
+      result.sort((a, b) {
+        final aPct = a.collection.itemCount > 0 ? a.owned / a.collection.itemCount : 0;
+        final bPct = b.collection.itemCount > 0 ? b.owned / b.collection.itemCount : 0;
+        return aPct.compareTo(bPct);
+      });
+    case CollectionSortMode.completionDesc:
+      result.sort((a, b) {
+        final aPct = a.collection.itemCount > 0 ? a.owned / a.collection.itemCount : 0;
+        final bPct = b.collection.itemCount > 0 ? b.owned / b.collection.itemCount : 0;
+        return bPct.compareTo(aPct);
+      });
+  }
+
+  return result;
+});
+
 /// Aggregated home screen stats (total items, owned, recent activity).
 final homeStatsProvider = FutureProvider<HomeStats>((ref) async {
   final colRepo = ref.watch(collectionRepositoryProvider);
