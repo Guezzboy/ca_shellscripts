@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../core/models/display_item.dart';
 import '../../../core/services/isbn_lookup_service.dart';
@@ -122,10 +123,10 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
             if (book.coverUrl != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(book.coverUrl!,
+                child: CachedNetworkImage(imageUrl: book.coverUrl!,
                     height: 120,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                    errorWidget: (_, __, ___) => const SizedBox.shrink()),
               ),
             const SizedBox(height: 12),
             Text(book.title ?? 'Livre inconnu',
@@ -461,8 +462,8 @@ class _SearchResultTile extends StatelessWidget {
         child: item.imageUrl != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(6),
-                child: Image.network(item.imageUrl!, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
+                child: CachedNetworkImage(imageUrl: item.imageUrl!, fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) =>
                         Icon(Icons.image, color: Colors.brown.shade300)),
               )
             : Icon(Icons.image_outlined, color: Colors.brown.shade300),

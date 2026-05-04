@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -619,9 +620,9 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) =>
                 const Icon(Icons.broken_image, size: 48, color: Colors.grey))
-        : Image.network(src,
+        : CachedNetworkImage(imageUrl: src,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) =>
+            errorWidget: (_, __, ___) =>
                 const Icon(Icons.broken_image, size: 48, color: Colors.grey));
 
     return GestureDetector(
@@ -726,9 +727,9 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
           errorBuilder: (_, __, ___) =>
               const Icon(Icons.broken_image, size: 16, color: Colors.grey));
     }
-    return Image.network(src,
+    return CachedNetworkImage(imageUrl: src,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) =>
+        errorWidget: (_, __, ___) =>
             const Icon(Icons.broken_image, size: 16, color: Colors.grey));
   }
 
@@ -1334,7 +1335,7 @@ class _FullscreenViewerState extends State<_FullscreenViewer> {
           final src = widget.images[i];
           final image = widget.isLocal(src)
               ? Image.file(File(src), fit: BoxFit.contain)
-              : Image.network(src, fit: BoxFit.contain);
+              : CachedNetworkImage(imageUrl: src, fit: BoxFit.contain);
           return InteractiveViewer(
             minScale: 1.0,
             maxScale: 5.0,

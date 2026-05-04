@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/models/display_item.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -292,12 +293,14 @@ class _ItemCardState extends State<ItemCard>
         errorBuilder: (_, __, ___) => _placeholder(tokens),
       );
     } else if (item.imageUrl != null && item.imageUrl!.isNotEmpty) {
-      img = Image.network(
-        item.imageUrl!,
+      img = CachedNetworkImage(
+        imageUrl: item.imageUrl!,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _placeholder(tokens),
-        loadingBuilder: (_, child, progress) =>
-            progress == null ? child : _loading(progress, tokens),
+        errorWidget: (_, __, ___) => _placeholder(tokens),
+        progressIndicatorBuilder: (_, url, progress) =>
+            progress.downloaded == progress.totalSize
+                ? const SizedBox.shrink()
+                : _loading(progress, tokens),
       );
     } else {
       return _placeholder(tokens);
@@ -324,14 +327,14 @@ class _ItemCardState extends State<ItemCard>
             size: 28, color: tokens.ink.withOpacity(0.15)),
       );
 
-  Widget _loading(ImageChunkEvent progress, ThemeTokens tokens) => Container(
+  Widget _loading(DownloadProgress progress, ThemeTokens tokens) =>
+      Container(
         color: tokens.ink.withOpacity(0.05),
         child: Center(
           child: CircularProgressIndicator(
             strokeWidth: 1.5,
-            value: progress.expectedTotalBytes != null
-                ? progress.cumulativeBytesLoaded /
-                    progress.expectedTotalBytes!
+            value: progress.totalSize != null && progress.totalSize! > 0
+                ? progress.downloaded / progress.totalSize!
                 : null,
             color: tokens.ink.withOpacity(0.5),
           ),

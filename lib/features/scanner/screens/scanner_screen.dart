@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/services/isbn_lookup_service.dart';
 import '../../../core/services/badge_checker.dart';
 import '../../../core/providers/collection_providers.dart';
@@ -640,9 +641,9 @@ class _BookConfirmSheet extends StatelessWidget {
                   height: 96,
                   color: tokens.ink.withOpacity(0.06),
                   child: book.coverUrl != null
-                      ? Image.network(book.coverUrl!,
+                      ? CachedNetworkImage(imageUrl: book.coverUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(Icons.book,
+                          errorWidget: (_, __, ___) => Icon(Icons.book,
                               size: 32, color: tokens.ink.withOpacity(0.3)))
                       : Icon(Icons.book,
                           size: 32, color: tokens.ink.withOpacity(0.3)),

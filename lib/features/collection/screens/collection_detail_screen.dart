@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../core/providers/item_providers.dart';
@@ -664,10 +665,10 @@ class _CollectionDetailScreenState
                 width: 48,
                 height: 48,
                 child: item.imageUrl != null
-                    ? Image.network(item.imageUrl!, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                    ? CachedNetworkImage(imageUrl: item.imageUrl!, fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Container(
                             color: const Color(0xFFEFEDE8),
-                            child: Icon(Icons.image_outlined,
+                            child: const Icon(Icons.image_outlined,
                                 size: 20, color: tokens.ink.withOpacity(0.6))))
                     : Container(
                         color: const Color(0xFFEFEDE8),

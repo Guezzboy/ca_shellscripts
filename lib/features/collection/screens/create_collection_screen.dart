@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -650,10 +651,10 @@ class _ThumbnailGrid extends StatelessWidget {
       itemCount: shown.length,
       itemBuilder: (_, i) => ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: Image.network(
-          shown[i],
+        child: CachedNetworkImage(
+          imageUrl: shown[i],
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorWidget: (_, __, ___) => Container(
             color: const Color(0xFFEFEDE8),
             child: const Icon(Icons.image_outlined,
                 color: Color(0xFFBBB8B2), size: 24),
