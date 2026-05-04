@@ -254,13 +254,20 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
   }
 
   Future<void> _saveCustomItem() async {
-    final name = _nameController.text.trim();
+    var name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Le nom est requis.')),
       );
       return;
     }
+
+    // If ISBN lookup pre-filled book data, embed it in the name so it's visible
+    if (_prefillAuthor != null) {
+      name = '$name — $_prefillAuthor';
+      if (_prefillYear != null) name = '$name, $_prefillYear';
+    }
+
     setState(() => _saving = true);
     try {
       await ref
@@ -272,12 +279,6 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
                 : _numberController.text.trim(),
             source: _prefillAuthor != null ? 'isbn' : 'manual',
           );
-
-      // If we have book data from ISBN, update the newly created custom item
-      // with book fields. Custom items don't have book fields directly, but
-      // we can store metadata in the custom item's name for now, or we handle
-      // it differently.
-      // For now, the book info is embedded in name and number only.
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
