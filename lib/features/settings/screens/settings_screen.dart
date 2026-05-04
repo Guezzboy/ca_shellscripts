@@ -87,8 +87,8 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.sync),
             title: const Text('Syncthing'),
             subtitle:
-                const Text('Sync locale via Wi-Fi (configuré sur CasaOS)'),
-            onTap: () => _showComingSoon(context),
+                const Text('Sync Wi-Fi — serveur CasaOS prêt (192.168.1.183)'),
+            onTap: () => _showSyncthingInfo(context),
           ),
           const Divider(),
           _SectionHeader('Danger zone', tokens),
@@ -145,11 +145,14 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  void _showComingSoon(BuildContext context) {
+  void _showSyncthingInfo(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Fonctionnalité prévue pour la Phase 3 !'),
-        duration: Duration(seconds: 2),
+        content: Text(
+          'Syncthing est installé sur CasaOS.\n'
+          'Ajoute ce device comme client pour synchroniser tes collections.',
+        ),
+        duration: Duration(seconds: 4),
       ),
     );
   }
