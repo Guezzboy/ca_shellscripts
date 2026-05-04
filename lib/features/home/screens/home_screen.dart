@@ -322,22 +322,30 @@ class _RecentAddCard extends StatelessWidget {
       }
     }
 
+    final hasItem = itemName != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: tokens.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              offset: const Offset(0, 1),
-              blurRadius: 2,
+      child: Material(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: hasItem ? null : () => context.push('/collections'),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: tokens.surface,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  offset: const Offset(0, 1),
+                  blurRadius: 2,
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
+            child: Row(
           children: [
             ObjectCard(
               color: cardColor,
@@ -397,6 +405,8 @@ class _RecentAddCard extends StatelessWidget {
               ),
             ),
           ],
+            ),
+          ),
         ),
       ),
     );
