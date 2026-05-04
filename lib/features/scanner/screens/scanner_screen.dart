@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/isbn_lookup_service.dart';
 import '../../../core/services/badge_checker.dart';
+import '../../../core/providers/collection_providers.dart';
 import '../../../shared/theme/app_theme.dart';
 
 /// Scanner screen — Hybrid code-barres + photo.
@@ -200,52 +201,75 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  // Gallery — switch to collections tab for photo add
+                  // Gallery / collections
                   GestureDetector(
-                    onTap: () => context.go('/collections'),
-                    child: const Icon(Icons.upload_file,
-                        color: Colors.white70, size: 22),
+                    onTap: _codeMode
+                        ? () => context.go('/collections')
+                        : _pickCollectionAndGo,
+                    child: Icon(
+                        _codeMode ? Icons.upload_file : Icons.photo_library,
+                        color: Colors.white70,
+                        size: 22),
                   ),
                   // Shutter / scan indicator
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _lookingUp
-                            ? tokens.accent.withOpacity(0.5)
-                            : Colors.white,
-                        width: 4,
-                      ),
-                    ),
-                    child: Center(
-                      child: _lookingUp
-                          ? SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: tokens.accent,
-                              ),
-                            )
-                          : Container(
-                              width: 40,
-                              height: 40,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color(0xFFF4A72B),
-                                    Color(0xFFE07A1F),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
+                  _codeMode
+                      ? Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _lookingUp
+                                  ? tokens.accent.withOpacity(0.5)
+                                  : Colors.white,
+                              width: 4,
+                            ),
+                          ),
+                          child: Center(
+                            child: _lookingUp
+                                ? SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: tokens.accent,
+                                    ),
+                                  )
+                                : Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Color(0xFFF4A72B),
+                                          Color(0xFFE07A1F),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: _pickCollectionAndGo,
+                          child: Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 4,
                               ),
                             ),
-                    ),
-                  ),
+                            child: const Center(
+                              child: Icon(Icons.camera_alt,
+                                  color: Colors.white, size: 28),
+                            ),
+                          ),
+                        ),
                   // Info button
                   const Icon(Icons.info_outline,
                       color: Colors.white24, size: 22),
@@ -289,7 +313,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
 
   Widget _buildPhotoPlaceholder() {
     return GestureDetector(
-      onTap: () => context.go('/collections'),
+      onTap: _pickCollectionAndGo,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -315,10 +339,86 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                 height: 1.4,
               ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Appuyez pour choisir une collection',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.3),
+                fontSize: 10,
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _pickCollectionAndGo() async {
+    final collections = ref.read(collectionsProvider).valueOrNull;
+    if (collections == null || collections.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Créez d\'abord une collection avant d\'ajouter des photos.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (collections.length == 1) {
+      // Skip picker — go directly
+      context.push('/add-photo/${collections.first.id}');
+      return;
+    }
+
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 4),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Text('Choisir une collection',
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text('Où ajouter la photo ?',
+                  style: TextStyle(fontSize: 13, color: Colors.grey)),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: collections.map((c) => ListTile(
+                      leading: const Icon(Icons.folder_outlined),
+                      title: Text(c.name),
+                      subtitle: Text('${c.itemCount} objets'),
+                      onTap: () => Navigator.pop(ctx, c.id),
+                    )).toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (chosen != null && mounted) {
+      context.push('/add-photo/$chosen');
+    }
   }
 }
 
