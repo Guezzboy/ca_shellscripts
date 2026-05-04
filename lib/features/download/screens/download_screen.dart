@@ -315,16 +315,36 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (!_proxyAvailable)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.orange.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Recherche avancée indisponible. '
+                      'Utilise les collections populaires ou importe un fichier ci-dessous.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _searchController,
-                  enabled: _proxyAvailable,
                   decoration: InputDecoration(
-                    hintText: _proxyAvailable
-                        ? 'Rechercher une collection...'
-                        : 'Proxy de recherche non détecté',
+                    hintText: 'Rechercher une collection...',
                     prefixIcon: const Icon(Icons.search, size: 20),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -343,41 +363,25 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
                     isDense: true,
-                    helperText:
-                        _proxyAvailable ? null : 'Lancez node server/index.js',
-                    helperStyle: TextStyle(
-                        fontSize: 11, color: Colors.orange.shade700),
                   ),
                   textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _onSearch(),
+                  onSubmitted: _proxyAvailable ? (_) => _onSearch() : null,
                   onChanged: (_) => setState(() {}),
                 ),
               ),
               const SizedBox(width: 8),
-              _proxyAvailable
-                  ? ElevatedButton(
-                      onPressed: _isSearching ? null : _onSearch,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _tokens.accent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                      ),
-                      child: const Text('Chercher',
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
-                    )
-                  : OutlinedButton(
-                      onPressed: () => _checkProxy().then((_) {
-                            if (mounted) setState(() {});
-                          }),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                      ),
-                      child: const Text('Réessayer',
-                          style: TextStyle(fontSize: 13)),
-                    ),
+              ElevatedButton(
+                onPressed: (_isSearching || !_proxyAvailable) ? null : _onSearch,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _tokens.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                ),
+                child: const Text('Chercher',
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
             ],
           ),
         ],
