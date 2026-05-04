@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Full-screen badge unlock overlay with confetti + pop animation.
 /// Matches the Colectio wireframe variant A: Confetti + flip.
@@ -210,7 +211,13 @@ class _BadgeOverlayState extends State<BadgeOverlay>
                 ),
                 const SizedBox(height: 10),
                 GestureDetector(
-                  onTap: widget.onDismiss,
+                  onTap: () {
+                    Share.share(
+                      'Je viens de débloquer le badge '
+                      '"${widget.name}" dans Colectio ! '
+                      '${widget.emoji}',
+                    );
+                  },
                   child: const Text(
                     'Partager',
                     style: TextStyle(
