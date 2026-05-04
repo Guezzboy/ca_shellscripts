@@ -614,16 +614,34 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
   }
 
   Widget _buildGalleryImage(String src) {
-    if (_isLocalPath(src)) {
-      return Image.file(File(src),
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) =>
-              const Icon(Icons.broken_image, size: 48, color: Colors.grey));
-    }
-    return Image.network(src,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) =>
-            const Icon(Icons.broken_image, size: 48, color: Colors.grey));
+    final image = _isLocalPath(src)
+        ? Image.file(File(src),
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) =>
+                const Icon(Icons.broken_image, size: 48, color: Colors.grey))
+        : Image.network(src,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) =>
+                const Icon(Icons.broken_image, size: 48, color: Colors.grey));
+
+    return GestureDetector(
+      onTap: () => _openFullscreen(context),
+      child: image,
+    );
+  }
+
+  void _openFullscreen(BuildContext context) {
+    final images = _images;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _FullscreenViewer(
+          images: images,
+          initialIndex: _imageIndex,
+          isLocal: _isLocalPath,
+        ),
+        fullscreenDialog: true,
+      ),
+    );
   }
 
   // ── Thumbnail row ─────────────────────────────────────────────────────────
@@ -1256,6 +1274,73 @@ class _BookRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Fullscreen photo viewer ─────────────────────────────────────────────────
+
+class _FullscreenViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+  final bool Function(String) isLocal;
+
+  const _FullscreenViewer({
+    required this.images,
+    required this.initialIndex,
+    required this.isLocal,
+  });
+
+  @override
+  State<_FullscreenViewer> createState() => _FullscreenViewerState();
+}
+
+class _FullscreenViewerState extends State<_FullscreenViewer> {
+  late final PageController _ctrl;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex;
+    _ctrl = PageController(initialPage: _index);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          '${_index + 1} / ${widget.images.length}',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        centerTitle: true,
+      ),
+      body: PageView.builder(
+        controller: _ctrl,
+        itemCount: widget.images.length,
+        onPageChanged: (i) => setState(() => _index = i),
+        itemBuilder: (_, i) {
+          final src = widget.images[i];
+          final image = widget.isLocal(src)
+              ? Image.file(File(src), fit: BoxFit.contain)
+              : Image.network(src, fit: BoxFit.contain);
+          return InteractiveViewer(
+            minScale: 1.0,
+            maxScale: 5.0,
+            child: Center(child: image),
+          );
+        },
       ),
     );
   }
