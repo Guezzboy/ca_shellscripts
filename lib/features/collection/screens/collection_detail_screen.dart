@@ -668,7 +668,7 @@ class _CollectionDetailScreenState
                     ? CachedNetworkImage(imageUrl: item.imageUrl!, fit: BoxFit.cover,
                         errorWidget: (_, __, ___) => Container(
                             color: const Color(0xFFEFEDE8),
-                            child: const Icon(Icons.image_outlined,
+                            child: Icon(Icons.image_outlined,
                                 size: 20, color: tokens.ink.withOpacity(0.6))))
                     : Container(
                         color: const Color(0xFFEFEDE8),
