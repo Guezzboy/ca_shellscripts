@@ -7,14 +7,17 @@
 
 ## ✨ Fonctionnalités
 
+- 🏠 **Écran d'accueil** — progression globale, journal d'activité (dernier ajout, badges débloqués, résumé de la veille)
 - 🗂️ **Multi-collections** — gérez autant de collections que vous voulez (verres moutarde, cartes, figurines, vignettes...)
 - 🖼️ **Grille visuelle** — affichage style album Panini avec images grisées pour les items manquants
 - ✅ **3 états par item** — neutre / recherché (🔍 badge ambre) / possédé (✓ badge vert). Cycle par appui long
 - 📱 **Scan ISBN** — scannez un code-barres de livre, récupération automatique des métadonnées via Open Library / Google Books
 - 📋 **Mode Vide-Grenier** — vue liste compacte avec swipe actions (droite → possédé, gauche → retirer), partage de wishlist
 - 🔍 **Fiche détail** — galerie photo swipeable, infos techniques, notes personnelles, double CTA (chercher / posséder)
-- 📥 **Import JSON** — téléchargez une collection existante depuis une URL ou un fichier local
-- 📷 **Photo personnalisée** — ajoutez vos propres photos depuis l'appareil photo ou la galerie
+- 📥 **Import JSON** — téléchargez une collection existante depuis une URL ou un fichier local (4 formats supportés)
+- 📤 **Export JSON** — exportez toutes vos collections avec état owned/wanted pour round-trip
+- 📷 **Photo + OCR** — ajoutez des items via appareil photo, reconnaissance automatique du texte avec Google ML Kit
+- 🏆 **Badges** — 7 badges à débloquer (Premier pas, Collectionneur, Chasseur, Photographe, Expert, Détective, Sauvegarde)
 - 💾 **100% offline** — toutes les données stockées localement en SQLite, aucun compte requis
 
 ---
@@ -58,18 +61,23 @@ lib/
 ├── main.dart                         # Point d'entrée + init BDD
 ├── app.dart                          # MaterialApp.router
 ├── router.dart                       # Routes go_router
-├── shared/theme/app_theme.dart       # Thème cardboard Panini
+├── shared/theme/app_theme.dart       # 3 thèmes (Solaire, Naturel, Nuit)
 ├── core/
 │   ├── database/database_helper.dart # Setup sqflite
 │   ├── models/                       # Modèles Dart (PODO)
 │   ├── repositories/                 # Accès base de données
 │   ├── providers/                    # Providers Riverpod
-│   └── services/                     # HTTP (download, ISBN lookup)
+│   └── services/                     # HTTP, export, badges, ISBN
 └── features/
-    ├── collection/                   # Écrans principaux (grille, liste)
-    ├── add_item/                     # Ajout manuel + photo
-    ├── download/                     # Import JSON distant
-    └── settings/                     # Paramètres
+    ├── home/                         # Accueil — progression + journal
+    ├── collection/                   # Écrans principaux (grille, liste, fiche)
+    ├── add_item/                     # Ajout manuel + photo + OCR
+    ├── download/                     # Import JSON distant/local
+    ├── scanner/                      # Scan ISBN + photo
+    ├── catalogue/                    # Catalogue de collections publiques
+    ├── badges/                       # Overlay de badges
+    ├── onboarding/                   # Wizard 3 étapes
+    └── settings/                     # Paramètres (thème, import/export, proxy)
 ```
 
 ---
@@ -141,6 +149,7 @@ Ces fichiers peuvent être hébergés sur **GitHub Pages** ou tout serveur stati
 - [x] **Phase 3 — Import intelligent** : recherche automatique de collection via proxy Node.js (local + Coleka)
 - [x] **Phase 4 — OCR** : Google ML Kit text recognition, suggestion auto du nom depuis les photos
 - [x] **Phase 5 — Sync** : export JSON avec état owned/wanted, partage via share sheet, import existant
+- [x] **Phase 6 — Accueil vivant** : progression réelle, journal d'activité (derniers ajouts, badges, résumé quotidien)
 
 ---
 
