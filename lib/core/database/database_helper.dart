@@ -9,8 +9,13 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
 
   Database? _db;
+  static Database? _testDb;
+
+  /// Inject a test database. All future [database] calls return this.
+  static void setTestDatabase(Database db) => _testDb = db;
 
   Future<Database> get database async {
+    if (_testDb != null) return _testDb!;
     _db ??= await _initDatabase();
     return _db!;
   }
