@@ -1,4 +1,4 @@
-# Collection App
+# Colectio
 
 > Application Flutter de gestion de collections physiques (vignettes style Panini).
 > Offline-first · SQLite · Riverpod · go_router
@@ -9,19 +9,28 @@
 lib/
 ├── main.dart                    # Entry point + DB init
 ├── app.dart                     # MaterialApp.router
-├── router.dart                  # go_router routes
-├── shared/theme/app_theme.dart  # Thème cardboard Panini
+├── router.dart                  # go_router — StatefulShellRoute (5 tabs) + push routes
+├── shared/
+│   ├── theme/app_theme.dart     # 3-theme system (Solaire/Naturel/Nuit) + ThemeTokens
+│   └── widgets/
+│       ├── app_shell.dart       # Bottom nav + center-docked scan FAB
+│       └── progress_ring.dart   # Animated SVG-style ring
 ├── core/
-│   ├── database/database_helper.dart   # sqflite setup
-│   ├── models/                         # PODO (plain Dart)
-│   ├── repositories/                   # Accès BDD
-│   ├── providers/                      # Riverpod providers
-│   └── services/                       # HTTP download service
+│   ├── database/database_helper.dart
+│   ├── models/
+│   ├── repositories/
+│   ├── providers/               # Riverpod providers (incl. theme_provider.dart)
+│   └── services/                # HTTP, export, search, ISBN lookup
 └── features/
-    ├── collection/                      # Écrans principaux
-    ├── add_item/                        # Ajout manuel + photo
-    ├── download/                        # Téléchargement JSON
-    └── settings/                        # Paramètres
+    ├── home/                     # Accueil — progress ring + journal feed
+    ├── collection/               # Liste, détail, création, item detail
+    ├── add_item/                 # Ajout manuel + photo + OCR
+    ├── download/                 # Téléchargement JSON
+    ├── scanner/                  # Scanner code-barres + photo
+    ├── catalogue/                # Bibliothèque de catalogues
+    ├── badges/                   # Badge overlay
+    ├── onboarding/               # Onboarding 3-step wizard
+    └── settings/                 # Thème, export, import, about
 ```
 
 ## Stack
@@ -29,29 +38,20 @@ lib/
 | Composant | Package |
 |-----------|---------|
 | State | flutter_riverpod |
-| Navigation | go_router |
+| Navigation | go_router (StatefulShellRoute) |
 | DB | sqflite |
 | HTTP | dio |
 | Photo | image_picker |
+| OCR | google_mlkit_text_recognition |
+| Scan | mobile_scanner |
+| Share | share_plus |
+| Prefs | shared_preferences |
 
-## Format JSON (download)
+## Themes
 
-```json
-{
-  "id": "stable-collection-id",
-  "name": "Ma Collection",
-  "version": 1,
-  "items": [
-    { "id": "item-001", "name": "Mickey Mouse", "number": "001", "image_url": "..." }
-  ]
-}
-```
-
-## Phases
-
-- [x] Phase 1 — Core: grille Panini, ajout manuel, marqueur possédé, SQLite
-- [ ] Phase 2 — OCR: Google ML Kit (hooks prêts dans `add_photo_screen.dart`)
-- [ ] Phase 3 — Sync: export/import JSON, Syncthing
+3 themes sélectionnables via Settings: Solaire (default amber), Naturel (sage green), Nuit (dark).
+ThemeProvider persiste le choix dans SharedPreferences. Extension `context.themeTokens`
+disponible sur tous les BuildContext.
 
 ## Build
 
