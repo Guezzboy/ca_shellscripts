@@ -34,12 +34,12 @@ class CustomItem {
         name: map['name'] as String,
         number: map['number'] as String?,
         collectionId: map['collection_id'] as String,
-        imagePaths: _parsePaths(map['image_path'] as String?),
+        imagePaths: parsePaths(map['image_path'] as String?),
         source: map['source'] as String,
         createdAt: map['created_at'] as int,
       );
 
-  static List<String> _parsePaths(String? raw) {
+  static List<String> parsePaths(String? raw) {
     if (raw == null || raw.isEmpty) return [];
     try {
       return (json.decode(raw) as List<dynamic>).cast<String>();

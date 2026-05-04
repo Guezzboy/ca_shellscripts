@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:path_provider/path_provider.dart' as pp;
+import 'package:uuid/uuid.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -369,6 +371,19 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
+  /// Copy a temporary image file to the app's persistent photos directory.
+  Future<String> _copyToAppDir(String sourcePath) async {
+    final dir = await pp.getApplicationDocumentsDirectory();
+    final photosDir = Directory('${dir.path}/photos');
+    if (!await photosDir.exists()) {
+      await photosDir.create(recursive: true);
+    }
+    final ext = sourcePath.split('.').lastOrNull ?? 'jpg';
+    final destPath = '${photosDir.path}/${const Uuid().v4()}.$ext';
+    await File(sourcePath).copy(destPath);
+    return destPath;
+  }
+
   Future<void> _saveItem() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -379,6 +394,18 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
     }
     setState(() => _saving = true);
     try {
+      // Copy images from temp picker paths to persistent app directory
+      final persistentPaths = <String>[];
+      for (final path in _imagePaths) {
+        try {
+          final dest = await _copyToAppDir(path);
+          persistentPaths.add(dest);
+        } catch (_) {
+          // If copy fails (e.g., temp file already gone), keep original path as fallback
+          persistentPaths.add(path);
+        }
+      }
+
       await ref
           .read(collectionItemsProvider(widget.collectionId).notifier)
           .addCustomItem(
@@ -386,14 +413,14 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
             number: _numberController.text.trim().isEmpty
                 ? null
                 : _numberController.text.trim(),
-            imagePaths: List.unmodifiable(_imagePaths),
+            imagePaths: List.unmodifiable(persistentPaths),
             source: 'photo',
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
-                  '"$name" ajouté avec ${_imagePaths.length} photo(s).')),
+                  '"$name" ajouté avec ${persistentPaths.length} photo(s).')),
         );
         context.pop();
       }
