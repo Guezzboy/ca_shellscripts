@@ -320,22 +320,34 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
   }
 
   Future<void> _pickImageMobile(ImageSource source) async {
-    if (source == ImageSource.gallery) {
-      // image_picker supports multiple from gallery
-      final files = await _picker.pickMultiImage(
-          maxWidth: 1200, imageQuality: 85);
-      if (files.isNotEmpty) {
-        final paths = files.map((f) => f.path).toList();
-        setState(() => _imagePaths.addAll(paths));
-        _runOcr(paths.last);
+    try {
+      if (source == ImageSource.gallery) {
+        // image_picker supports multiple from gallery
+        final files = await _picker.pickMultiImage(
+            maxWidth: 1200, imageQuality: 85);
+        if (files.isNotEmpty) {
+          final paths = files.map((f) => f.path).toList();
+          setState(() => _imagePaths.addAll(paths));
+          _runOcr(paths.last);
+        }
+      } else {
+        final xfile = await _picker.pickImage(
+            source: source, maxWidth: 1200, imageQuality: 85);
+        if (xfile != null) {
+          setState(() => _imagePaths.add(xfile.path));
+          _runOcr(xfile.path);
+        }
       }
-    } else {
-      final xfile = await _picker.pickImage(
-          source: source, maxWidth: 1200, imageQuality: 85);
-      if (xfile != null) {
-        setState(() => _imagePaths.add(xfile.path));
-        _runOcr(xfile.path);
-      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(source == ImageSource.camera
+              ? 'Permission caméra refusée. Vérifie dans les paramètres.'
+              : 'Impossible d\'ouvrir la galerie.'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     }
   }
 
@@ -363,7 +375,14 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
         }
       }
     } catch (_) {
-      // OCR failed silently — the user can type manually
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lecture du texte échouée — saisis le nom manuellement.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _ocrRunning = false);
     }
