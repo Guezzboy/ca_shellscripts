@@ -15,5 +15,5 @@ void main() async {
   }
 
   await DatabaseHelper.instance.database;
-  runApp(const ProviderScope(child: CollectionApp()));
+  runApp(const ProviderScope(child: AppWithOnboarding()));
 }

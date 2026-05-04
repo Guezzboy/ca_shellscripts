@@ -5,6 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../core/models/display_item.dart';
 import '../../../core/services/isbn_lookup_service.dart';
+import '../../../core/services/badge_checker.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class AddItemScreen extends ConsumerStatefulWidget {
@@ -282,6 +283,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('"$name" ajouté à la collection.')),
         );
+        BadgeChecker.afterAdd(context);
         context.pop();
       }
     } finally {

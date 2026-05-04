@@ -180,4 +180,12 @@ class ItemRepository {
       'updated_at': DateTime.now().millisecondsSinceEpoch,
     }, where: 'id = ?', whereArgs: [itemId]);
   }
+
+  Future<int> countWanted() async {
+    final db = await _db;
+    final result = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM items WHERE wanted = 1'),
+    );
+    return result ?? 0;
+  }
 }

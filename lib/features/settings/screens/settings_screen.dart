@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/services/collection_export_service.dart';
+import '../../../core/services/badge_checker.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -133,6 +134,7 @@ class SettingsScreen extends ConsumerWidget {
         json,
         subject: 'Collections export',
       );
+      BadgeChecker.afterExport(context);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -12,6 +12,7 @@ import '../../../core/providers/item_providers.dart';
 import '../../../core/providers/repository_providers.dart';
 import '../../../core/repositories/item_repository.dart';
 import '../../../core/repositories/owned_item_repository.dart';
+import '../../../core/services/badge_checker.dart';
 import '../../../shared/theme/app_theme.dart';
 
 void showItemDetail(
@@ -207,6 +208,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
     final updated = [..._userPhotos, dest.path];
     await _persistUserPhotos(updated);
     if (mounted) setState(() => _userPhotos = updated);
+    BadgeChecker.afterAddPhoto(context);
   }
 
   Future<void> _persistUserPhotos(List<String> photos) async {
@@ -415,6 +417,7 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
         _toggling = false;
       });
       await _loadItemData();
+      BadgeChecker.afterToggleOwned(context, widget.collectionId);
     }
   }
 
@@ -1207,6 +1210,8 @@ class _ItemDetailSheetState extends ConsumerState<_ItemDetailSheet> {
         if (fresh != null) _item = fresh;
         _toggling = false;
       });
+      final wantedCount = await _itemRepo.countWanted();
+      BadgeChecker.afterWantedChanged(context, wantedCount);
     }
   }
 }

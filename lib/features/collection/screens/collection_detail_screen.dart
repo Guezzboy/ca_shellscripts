@@ -8,6 +8,8 @@ import '../../../core/providers/collection_providers.dart';
 import '../../../core/providers/item_providers.dart';
 import '../../../core/models/display_item.dart';
 import '../../../core/services/collection_export_service.dart';
+import '../../../core/services/badge_checker.dart';
+import '../../../core/repositories/item_repository.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../widgets/item_card.dart';
 import 'item_detail_screen.dart';
@@ -260,10 +262,13 @@ class _CollectionDetailScreenState
                         .read(collectionItemsProvider(widget.collectionId)
                             .notifier)
                         .toggleOwned(filtered[i]),
-                    onCycle: () => ref
-                        .read(collectionItemsProvider(widget.collectionId)
-                            .notifier)
-                        .cycleState(filtered[i]),
+                    onCycle: () async {
+                      await ref
+                          .read(collectionItemsProvider(widget.collectionId)
+                              .notifier)
+                          .cycleState(filtered[i]);
+                      _checkWantedBadge();
+                    },
                   ),
                 ),
 
@@ -628,6 +633,7 @@ class _CollectionDetailScreenState
                     .read(collectionItemsProvider(widget.collectionId)
                         .notifier)
                     .toggleWanted(item);
+                _checkWantedBadge();
               } else if (item.owned) {
                 await ref
                     .read(collectionItemsProvider(widget.collectionId)
@@ -729,6 +735,13 @@ class _CollectionDetailScreenState
       _Filter.wanted => list.where((i) => i.wanted).toList(),
       _Filter.all => list,
     };
+  }
+
+  Future<void> _checkWantedBadge() async {
+    if (!mounted) return;
+    final repo = ItemRepository();
+    final count = await repo.countWanted();
+    BadgeChecker.afterWantedChanged(context, count);
   }
 }
 
