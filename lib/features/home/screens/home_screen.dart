@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../core/services/badge_service.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../../../shared/utils/collection_emoji.dart';
 import '../../../shared/widgets/progress_ring.dart';
 import '../widgets/object_card.dart';
 
@@ -46,6 +48,11 @@ class _HomeContent extends StatelessWidget {
             totalAll: stats?.totalItems ?? 1,
           ),
         ),
+        // ── per-collection progress ──
+        if (stats != null && stats!.collections.isNotEmpty)
+          SliverToBoxAdapter(
+            child: _CollectionsSection(tokens: t, stats: stats!),
+          ),
         // ── journal: today ──
         SliverToBoxAdapter(
           child: _SectionLabel(tokens: t, text: "Aujourd'hui"),
@@ -561,6 +568,155 @@ class _YesterdayCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── per-collection progress section ──
+class _CollectionsSection extends StatelessWidget {
+  final ThemeTokens tokens;
+  final HomeStats stats;
+  const _CollectionsSection({required this.tokens, required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final list = stats.collections;
+    final showAll = list.length <= 5;
+    final visible = showAll ? list : list.sublist(0, 5);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionLabel(tokens: tokens, text: 'Collections'),
+          ...visible.map(
+            (c) => _CollectionStatTile(
+              tokens: tokens,
+              id: c.id,
+              name: c.name,
+              owned: c.owned,
+              total: c.total,
+              percentage: c.percentage,
+            ),
+          ),
+          if (!showAll)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 2, 18, 0),
+              child: GestureDetector(
+                onTap: () => context.push('/collections'),
+                child: Text(
+                  'Voir les ${list.length} collections',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.accent,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectionStatTile extends StatelessWidget {
+  final ThemeTokens tokens;
+  final String id;
+  final String name;
+  final int owned;
+  final int total;
+  final double percentage;
+
+  const _CollectionStatTile({
+    required this.tokens,
+    required this.id,
+    required this.name,
+    required this.owned,
+    required this.total,
+    required this.percentage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pctInt = (percentage * 100).round();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+      child: Material(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () => context.push('/collection/$id'),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: tokens.accentSoft,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    emojiFor(name),
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: tokens.ink,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: percentage,
+                          minHeight: 4,
+                          backgroundColor: tokens.ink.withOpacity(0.08),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(tokens.accent),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '$owned/$total \u00b7 $pctInt%',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.accentDeep,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: tokens.ink.withOpacity(0.3),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

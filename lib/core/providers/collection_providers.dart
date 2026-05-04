@@ -14,6 +14,9 @@ class HomeStats {
   final Badge? lastBadge;
   /// List of (collectionName, count) for items added yesterday.
   final List<({String name, int count})> yesterdayEntries;
+  /// Per-collection completion stats, sorted by % ascending.
+  final List<({String id, String name, int owned, int total, double percentage})>
+      collections;
 
   const HomeStats({
     required this.totalItems,
@@ -23,6 +26,7 @@ class HomeStats {
     this.lastAddedCustom,
     this.lastBadge,
     required this.yesterdayEntries,
+    required this.collections,
   });
 
   double get percentage => totalItems > 0 ? totalOwned / totalItems : 0.0;
@@ -82,10 +86,29 @@ final homeStatsProvider = FutureProvider<HomeStats>((ref) async {
   // Total items and owned across all collections
   int totalItems = 0;
   int totalOwned = 0;
+  final collectionStats = <({
+    String id,
+    String name,
+    int owned,
+    int total,
+    double percentage
+  })>[];
   for (final col in collections) {
+    final owned = await ownedRepo.countOwned(col.id);
     totalItems += col.itemCount;
-    totalOwned += await ownedRepo.countOwned(col.id);
+    totalOwned += owned;
+    if (col.itemCount > 0) {
+      collectionStats.add((
+        id: col.id,
+        name: col.name,
+        owned: owned,
+        total: col.itemCount,
+        percentage: owned / col.itemCount,
+      ));
+    }
   }
+  // Sort by % ascending — collections needing attention first
+  collectionStats.sort((a, b) => a.percentage.compareTo(b.percentage));
 
   // Most recent item (base or custom)
   Item? lastItem;
@@ -152,5 +175,6 @@ final homeStatsProvider = FutureProvider<HomeStats>((ref) async {
     lastAddedCustom: lastCustom,
     lastBadge: lastBadge,
     yesterdayEntries: yesterdayEntries,
+    collections: collectionStats,
   );
 });

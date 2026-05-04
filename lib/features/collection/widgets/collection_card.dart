@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/collection.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../../../shared/utils/collection_emoji.dart';
 
 class CollectionCard extends ConsumerWidget {
   final Collection collection;
@@ -43,7 +44,7 @@ class CollectionCard extends ConsumerWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    _emojiFor(collection.name),
+                    emojiFor(collection.name),
                     style: const TextStyle(fontSize: 20),
                   ),
                 ),
@@ -124,18 +125,6 @@ class CollectionCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  String _emojiFor(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('verre') || n.contains('moutarde')) return '🍷';
-    if (n.contains('manga') || n.contains('one piece') || n.contains('livre'))
-      return '📚';
-    if (n.contains('carte') || n.contains('pokémon') || n.contains('pokemon'))
-      return '🎴';
-    if (n.contains('vinyl') || n.contains('pif')) return '💿';
-    if (n.contains('pin')) return '📌';
-    return '📦';
   }
 
   void _showOptions(BuildContext context, ThemeTokens tokens) {
