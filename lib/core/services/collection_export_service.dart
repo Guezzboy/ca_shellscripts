@@ -5,8 +5,14 @@ import '../repositories/collection_repository.dart';
 import '../repositories/item_repository.dart';
 
 class CollectionExportService {
-  final _collectionRepo = CollectionRepository();
-  final _itemRepo = ItemRepository();
+  final CollectionRepository _collectionRepo;
+  final ItemRepository _itemRepo;
+
+  CollectionExportService({
+    CollectionRepository? collectionRepo,
+    ItemRepository? itemRepo,
+  })  : _collectionRepo = collectionRepo ?? CollectionRepository(),
+        _itemRepo = itemRepo ?? ItemRepository();
 
   /// Exporte toutes les collections avec leurs items et état owned/wanted.
   Future<String> exportAllCollections() async {
