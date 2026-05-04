@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../../../core/providers/collection_providers.dart';
 
 /// Onboarding flow — 3 steps matching Colectio wireframes A, B, D.
 /// Step 0: Illustrated welcome
 /// Step 1: Collection type picker
 /// Step 2: Camera permission
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   final VoidCallback onDone;
   const OnboardingScreen({super.key, required this.onDone});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 
   static Future<bool> shouldShow() async {
     final prefs = await SharedPreferences.getInstance();
@@ -24,19 +26,32 @@ class OnboardingScreen extends StatefulWidget {
   }
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with SingleTickerProviderStateMixin {
   int _step = 0;
   final _pageCtrl = PageController();
   String? _selectedCategory;
+  bool _creating = false;
 
-  void _next() {
+  Future<void> _next() async {
     if (_step < 2) {
       _pageCtrl.animateToPage(_step + 1,
           duration: const Duration(milliseconds: 400), curve: Curves.easeOut);
-    } else {
-      OnboardingScreen.markComplete().then((_) => widget.onDone());
+      return;
     }
+
+    // Pre-create a collection from the selected category
+    if (_selectedCategory != null && !_creating) {
+      setState(() => _creating = true);
+      try {
+        await ref.read(collectionsProvider.notifier).create(_selectedCategory!);
+      } catch (_) {
+        // Collection creation failed — user can create manually later
+      }
+    }
+
+    await OnboardingScreen.markComplete();
+    widget.onDone();
   }
 
   @override
@@ -99,7 +114,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _next,
+                      onPressed: _creating ? null : _next,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: tokens.accent,
                         foregroundColor: Colors.white,
@@ -108,27 +123,37 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: Text(
-                        _step == 2 ? "C'est parti" : 'Suivant',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: _creating
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : Text(
+                              _step == 2 ? "C'est parti" : 'Suivant',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
                   if (_step < 2)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: GestureDetector(
-                        onTap: _next,
-                        child: Text(
-                          'Passer',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: tokens.ink.withOpacity(0.5),
+                      child: IgnorePointer(
+                        ignoring: _creating,
+                        child: GestureDetector(
+                          onTap: _next,
+                          child: Text(
+                            'Passer',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: tokens.ink.withOpacity(0.5),
+                            ),
                           ),
                         ),
+                      ),
                       ),
                     ),
                 ],
