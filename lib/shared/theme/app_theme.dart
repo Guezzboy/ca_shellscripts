@@ -169,22 +169,16 @@ class ThemeTokens {
   });
 }
 
+/// Tracks the active theme key so [AppThemeExtension] can read it
+/// without needing a Riverpod ref.
+String _activeThemeKey = 'solaire';
+
+/// Called by [ThemeNotifier] when the theme changes.
+void setActiveThemeKey(String key) => _activeThemeKey = key;
+
 /// Convenience extension to access theme tokens from BuildContext.
 extension AppThemeExtension on BuildContext {
-  ThemeTokens get themeTokens {
-    final brightness = Theme.of(this).brightness;
-    final isDark = brightness == Brightness.dark;
-    if (isDark) return AppTheme._nuit;
-    // Heuristic: check primary color to determine solaire vs naturel
-    final primary = Theme.of(this).colorScheme.primary;
-    if (primary == AppTheme._naturel.accent) return AppTheme._naturel;
-    return AppTheme._solaire;
-  }
+  ThemeTokens get themeTokens => AppTheme.tokensOf(_activeThemeKey);
 
-  String get currentThemeKey {
-    final primary = Theme.of(this).colorScheme.primary;
-    if (primary == AppTheme._nuit.accent) return 'nuit';
-    if (primary == AppTheme._naturel.accent) return 'naturel';
-    return 'solaire';
-  }
+  String get currentThemeKey => _activeThemeKey;
 }
