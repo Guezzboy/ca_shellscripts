@@ -142,7 +142,7 @@ class _SourceChip extends StatelessWidget {
       'local' => (Colors.green.shade100, Colors.green.shade800, 'locale'),
       'coleka' =>
         (Colors.blue.shade100, Colors.blue.shade800, 'Coleka'),
-      _ => (Colors.grey.shade100, Colors.grey.shade700, 'généré'),
+      _ => (Colors.indigo.shade50, Colors.indigo.shade700, source),
     };
 
     return Container(

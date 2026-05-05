@@ -1,0 +1,50 @@
+{
+  "updated": "2026-05-06",
+  "collections": [
+    {
+      "name": "Verres Pokémon Amora",
+      "description": "66 verres moutarde Amora — licence Pokémon, générations 1 à 6",
+      "category": "Verres",
+      "item_count": 66,
+      "emoji": "⭐",
+      "url": "https://raw.githubusercontent.com/Guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/amora_pokemon.json",
+      "source": "Amora"
+    },
+    {
+      "name": "Verres Amora Disney",
+      "description": "25 verres moutarde Amora — collection Disney Classique",
+      "category": "Verres",
+      "item_count": 25,
+      "emoji": "🍷",
+      "url": "https://raw.githubusercontent.com/Guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/amora_disney.json",
+      "source": "Amora"
+    },
+    {
+      "name": "Cartes Panini FIFA 2026",
+      "description": "Collection de vignettes Panini — Coupe du Monde FIFA 2026",
+      "category": "Cartes",
+      "item_count": 20,
+      "emoji": "⚽",
+      "url": "https://raw.githubusercontent.com/Guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/panini_fifa2026.json",
+      "source": "Panini"
+    },
+    {
+      "name": "Figurines Nintendo Smash",
+      "description": "Collection de figurines Super Smash Bros Ultimate — Nintendo",
+      "category": "Figurines",
+      "item_count": 20,
+      "emoji": "🎮",
+      "url": "https://raw.githubusercontent.com/Guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/nintendo_smash.json",
+      "source": "Nintendo"
+    },
+    {
+      "name": "Cartes Magic The Gathering",
+      "description": "Cartes Magic: The Gathering — édition de base",
+      "category": "Cartes",
+      "item_count": 20,
+      "emoji": "🃏",
+      "url": "https://raw.githubusercontent.com/Guezzboy/ca_shellscripts/claude/collection-app-android-0XgBI/sample_data/magic_mtg.json",
+      "source": "Wizards of the Coast"
+    }
+  ]
+}

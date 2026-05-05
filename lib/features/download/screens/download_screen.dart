@@ -11,6 +11,10 @@ import '../../../core/providers/collection_providers.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../widgets/search_result_card.dart';
 
+const _catalogIndexUrl =
+    'https://raw.githubusercontent.com/Guezzboy/ca_shellscripts/claude/'
+    'collection-app-android-0XgBI/sample_data/index.json';
+
 const _popularCollections = [
   (
     name: 'Verres Pokémon Amora',
@@ -44,6 +48,36 @@ const _popularCollections = [
   ),
 ];
 
+class _CatalogEntry {
+  final String name;
+  final String description;
+  final String category;
+  final int itemCount;
+  final String emoji;
+  final String url;
+  final String source;
+
+  const _CatalogEntry({
+    required this.name,
+    required this.description,
+    required this.category,
+    required this.itemCount,
+    required this.emoji,
+    required this.url,
+    required this.source,
+  });
+
+  factory _CatalogEntry.fromJson(Map<String, dynamic> json) => _CatalogEntry(
+        name: json['name'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        category: json['category'] as String? ?? '',
+        itemCount: (json['item_count'] as num?)?.toInt() ?? 0,
+        emoji: json['emoji'] as String? ?? '📦',
+        url: json['url'] as String? ?? '',
+        source: json['source'] as String? ?? '',
+      );
+}
+
 class DownloadScreen extends ConsumerStatefulWidget {
   const DownloadScreen({super.key});
 
@@ -59,6 +93,11 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   String? _errorMessage;
   String? _successMessage;
 
+  // ── Catalog state ──
+  List<_CatalogEntry> _catalogEntries = [];
+  bool _catalogLoading = false;
+  String? _catalogError;
+
   // ── Search state ──
   bool _isSearching = false;
   List<CollectionSearchResult>? _searchResults;
@@ -67,6 +106,43 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchCatalog();
+  }
+
+  Future<void> _fetchCatalog() async {
+    setState(() {
+      _catalogLoading = true;
+      _catalogError = null;
+    });
+    try {
+      final dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 10)));
+      final resp = await dio.get(_catalogIndexUrl);
+      if (resp.data == null) {
+        setState(() {
+          _catalogLoading = false;
+          _catalogError = 'Réponse vide du catalogue.';
+        });
+        return;
+      }
+      final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
+      final raw = (data['collections'] as List<dynamic>?)
+              ?.map((e) => _CatalogEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+      if (!mounted) return;
+      setState(() {
+        _catalogEntries = raw;
+        _catalogLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _catalogLoading = false;
+        _catalogError = 'Catalogue indisponible : recherche locale utilisée.';
+      });
+    }
   }
 
   @override
@@ -89,6 +165,29 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
           children: [
             // ── Recherche de collection ───────────────────────────────────
             _buildSearchBar(),
+            // ── Catalog status indicators ──
+            if (_catalogLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 4, left: 16, right: 16),
+                child: Row(
+                  children: [
+                    SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                    SizedBox(width: 8),
+                    Text('Chargement du catalogue...',
+                        style: TextStyle(fontSize: 11)),
+                  ],
+                ),
+              ),
+            if (_catalogError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, left: 16, right: 16),
+                child: Text(_catalogError!,
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.orange.shade700)),
+              ),
             if (_isSearching)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -187,21 +286,24 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            ...(_popularCollections.map((c) => Card(
+            ...(_popularSectionEntries().map((e) => Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
                     leading:
-                        Text(c.icon, style: const TextStyle(fontSize: 24)),
-                    title: Text(c.name),
+                        Text(e.emoji, style: const TextStyle(fontSize: 24)),
+                    title: Text(e.name),
                     subtitle: Text(
-                      c.url,
+                      e.description.isNotEmpty
+                          ? e.description
+                          : e.url,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 11),
                     ),
                     trailing: TextButton(
-                      onPressed:
-                          _downloading ? null : () => _download(c.url, c.name),
+                      onPressed: _downloading
+                          ? null
+                          : () => _download(e.url, e.name),
                       child: const Text('Télécharger'),
                     ),
                   ),
@@ -264,6 +366,30 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         ),
       ),
     );
+  }
+
+  /// Merge catalog entries with hardcoded fallback for the popular section.
+  List<({String name, String emoji, String description, String url})>
+      _popularSectionEntries() {
+    if (_catalogEntries.isNotEmpty) {
+      return _catalogEntries
+          .map((e) => (
+                name: e.name,
+                emoji: e.emoji,
+                description: e.description,
+                url: e.url,
+              ))
+          .toList();
+    }
+    // Fallback: use hardcoded list (no descriptions available)
+    return _popularCollections
+        .map((c) => (
+              name: c.name,
+              emoji: c.icon,
+              description: '',
+              url: c.url,
+            ))
+        .toList();
   }
 
   Widget _buildLocalImportCard() {
@@ -402,7 +528,58 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
     });
   }
 
-  /// Search popular collections by name (works offline/without proxy).
+  /// Search the online catalog + hardcoded fallback by name / description / category.
+  Future<List<CollectionSearchResult>> _localSearch(String query) async {
+    final q = _normalize(query);
+    final results = <CollectionSearchResult>[];
+    final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 12)));
+
+    // ── 1. Search online catalog entries ──
+    final catalogMatches = _catalogEntries
+        .where((e) =>
+            _normalize(e.name).contains(q) ||
+            _normalize(e.description).contains(q) ||
+            _normalize(e.category).contains(q))
+        .toList();
+
+    for (final entry in catalogMatches) {
+      try {
+        final resp = await dio.get(entry.url);
+        if (resp.data == null) continue;
+        final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
+        final result = _parseJsonToSearchResult(
+            data as Map<String, dynamic>,
+            catalogEntry: entry);
+        if (result != null) results.add(result);
+      } catch (_) {}
+    }
+
+    // ── 2. Hardcoded fallback (only for entries NOT already in catalog) ──
+    final catalogUrls =
+        _catalogEntries.map((e) => e.url.toLowerCase()).toSet();
+    final hardcodedMatches = _popularCollections
+        .where((c) =>
+            _normalize(c.name).contains(q) &&
+            !catalogUrls.contains(c.url.toLowerCase()))
+        .toList();
+
+    for (final match in hardcodedMatches) {
+      try {
+        final resp = await dio.get(match.url);
+        if (resp.data == null) continue;
+        final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
+        final result = _parseJsonToSearchResult(
+            data as Map<String, dynamic>,
+            fallbackIcon: match.icon);
+        if (result != null) results.add(result);
+      } catch (_) {}
+    }
+
+    return results;
+  }
+
   /// Strip diacritics so "pokémon" matches "pokemon".
   String _normalize(String s) {
     return s
@@ -415,47 +592,22 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         .toLowerCase();
   }
 
-  Future<List<CollectionSearchResult>> _localSearch(String query) async {
-    final q = _normalize(query);
-    final matches = _popularCollections
-        .where((c) => _normalize(c.name).contains(q))
-        .toList();
-    if (matches.isEmpty) return [];
-
-    final results = <CollectionSearchResult>[];
-    final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 8)));
-
-    for (final match in matches) {
-      try {
-        final resp = await dio.get(match.url);
-        if (resp.data == null) continue;
-        final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
-
-        // Parse the collection data into a CollectionSearchResult
-        final result = _parseJsonToSearchResult(data as Map<String, dynamic>);
-        if (result != null) results.add(result);
-      } catch (_) {
-        // Skip collections that fail to download
-      }
-    }
-
-    return results;
-  }
-
   /// Parse a downloaded JSON (popular collection format) into a search result.
   /// Handles three formats:
   /// - Flat: {name, items[]}
   /// - Structured: {collection: {name, ...}, items[]}
   /// - Amora: {collection: {nom, marque, licence, verres[]}}
-  CollectionSearchResult? _parseJsonToSearchResult(Map<String, dynamic> json) {
+  ///
+  /// [catalogEntry] enriches the result with catalog metadata (emoji, description, source).
+  /// [fallbackIcon] is used for hardcoded entries not in the online catalog.
+  CollectionSearchResult? _parseJsonToSearchResult(Map<String, dynamic> json,
+      {_CatalogEntry? catalogEntry, String? fallbackIcon}) {
     try {
       // ── Amora format: {collection: {nom, marque, licence, verres[]}} ──
       if (json.containsKey('collection')) {
         final col = json['collection'] as Map<String, dynamic>;
         if (col.containsKey('verres') && col.containsKey('nom')) {
-          return _parseAmoraFormat(col);
+          return _parseAmoraFormat(col, catalogEntry: catalogEntry);
         }
       }
 
@@ -479,15 +631,25 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         return SearchResultItem.fromJson(m);
       }).toList();
 
+      final source = catalogEntry?.source.isNotEmpty == true
+          ? catalogEntry!.source
+          : 'local';
+      final desc = catalogEntry?.description ??
+          colData['description']?.toString() ??
+          '';
+      final emoji = catalogEntry?.emoji ?? fallbackIcon ?? '';
+      final richDesc = emoji.isNotEmpty ? '$emoji  $desc' : desc;
+
       return CollectionSearchResult(
         collection: CollectionMeta(
           id: colData['id']?.toString() ?? colData['name']?.toString() ?? '',
           name: colData['name']?.toString() ?? '',
-          description: colData['description']?.toString() ?? '',
+          description: richDesc,
           totalItems: (colData['item_count'] as num?)?.toInt() ?? items.length,
         ),
         items: items,
-        meta: const SearchMeta(source: 'local', imageCompleteness: 1.0),
+        meta: SearchMeta(
+            source: source, imageCompleteness: 1.0),
       );
     } catch (_) {
       return null;
@@ -495,12 +657,18 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   }
 
   /// Parse Amora-specific format: {nom, marque, licence, verres[]}.
-  CollectionSearchResult _parseAmoraFormat(Map<String, dynamic> col) {
+  CollectionSearchResult _parseAmoraFormat(Map<String, dynamic> col,
+      {_CatalogEntry? catalogEntry}) {
     final name = col['nom'] as String? ?? '';
     final marque = col['marque'] as String?;
     final licence = col['licence'] as String?;
     final displayName = [name, if (marque != null) marque].join(' — ');
-    final description = licence ?? '';
+    final source = catalogEntry?.source.isNotEmpty == true
+        ? catalogEntry!.source
+        : 'local';
+    final desc = catalogEntry?.description ?? licence ?? '';
+    final emoji = catalogEntry?.emoji ?? '';
+    final description = emoji.isNotEmpty ? '$emoji  $desc' : desc;
 
     final rawItems = col['verres'] as List<dynamic>? ?? [];
     final items = rawItems.map((raw) {
@@ -533,7 +701,7 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
         totalItems: items.length,
       ),
       items: items,
-      meta: const SearchMeta(source: 'local', imageCompleteness: 1.0),
+      meta: SearchMeta(source: source, imageCompleteness: 1.0),
     );
   }
 
