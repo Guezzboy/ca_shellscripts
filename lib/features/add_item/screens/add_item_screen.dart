@@ -8,6 +8,7 @@ import '../../../core/models/display_item.dart';
 import '../../../core/services/isbn_lookup_service.dart';
 import '../../../core/services/badge_checker.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../../../shared/widgets/error_retry.dart';
 
 class AddItemScreen extends ConsumerStatefulWidget {
   final String collectionId;
@@ -404,7 +405,11 @@ class _SearchTab extends ConsumerWidget {
             child: searchAsync.when(
               loading: () =>
                   const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Erreur : $e')),
+              error: (e, _) => ErrorRetry(
+                message: 'Erreur : $e',
+                onRetry: () => ref.invalidate(
+                    itemSearchProvider((collectionId: collectionId, query: searchQuery))),
+              ),
               data: (items) {
                 if (items.isEmpty) {
                   return Center(

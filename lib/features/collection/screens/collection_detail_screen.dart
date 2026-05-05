@@ -12,6 +12,7 @@ import '../../../core/services/collection_export_service.dart';
 import '../../../core/services/badge_checker.dart';
 import '../../../core/repositories/item_repository.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../../../shared/widgets/error_retry.dart';
 import '../widgets/item_card.dart';
 import 'item_detail_screen.dart';
 
@@ -208,7 +209,11 @@ class _CollectionDetailScreenState
         body: itemsAsync.when(
           loading: () =>
               const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
-          error: (e, _) => Center(child: Text('Erreur : $e')),
+          error: (e, _) => ErrorRetry(
+            message: 'Erreur : $e',
+            onRetry: () =>
+                ref.invalidate(collectionItemsProvider(widget.collectionId)),
+          ),
           data: (items) {
             final filtered = _applyFilter(items);
 

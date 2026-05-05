@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/collection_providers.dart' hide HomeStats;
 import '../../../shared/theme/app_theme.dart';
+import '../../../shared/widgets/error_retry.dart';
 import '../widgets/collection_card.dart';
 
 class CollectionsListScreen extends ConsumerWidget {
@@ -61,7 +62,10 @@ class CollectionsListScreen extends ConsumerWidget {
       body: collectionsAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(strokeWidth: 1.5)),
-        error: (e, _) => Center(child: Text('Erreur : $e')),
+        error: (e, _) => ErrorRetry(
+          message: 'Erreur : $e',
+          onRetry: () => ref.invalidate(sortedCollectionsProvider),
+        ),
         data: (entries) {
           if (entries.isEmpty) {
             return _EmptyState(
