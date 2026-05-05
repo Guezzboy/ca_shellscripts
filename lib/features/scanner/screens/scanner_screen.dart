@@ -106,18 +106,23 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       builder: (ctx) => _BookConfirmSheet(book: book, isbn: isbn),
     );
     if (result == 'add' && mounted) {
-      // Navigate to add item with pre-filled book data
-      context.push('/add-item', extra: {
-        'isbn': isbn,
-        'title': book.title,
-        'author': book.authorString,
-        'publisher': book.publisher,
-        'publish_year': book.year,
-        'cover_url': book.coverUrl,
-      });
+      final collectionId = await _pickCollectionForResult();
+      if (collectionId != null && mounted) {
+        context.push('/add-item/$collectionId', extra: {
+          'isbn': isbn,
+          'title': book.title,
+          'author': book.authorString,
+          'publisher': book.publisher,
+          'publish_year': book.year,
+          'cover_url': book.coverUrl,
+        });
+      }
     }
     if (result == 'add_existing' && mounted) {
-      context.push('/add-item', extra: {'isbn': isbn});
+      final collectionId = await _pickCollectionForResult();
+      if (collectionId != null && mounted) {
+        context.push('/add-item/$collectionId', extra: {'isbn': isbn});
+      }
     }
   }
 
@@ -381,26 +386,33 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
   }
 
   Future<void> _pickCollectionAndGo() async {
+    final id = await _pickCollectionForResult();
+    if (id != null && mounted) {
+      context.push('/add-photo/$id');
+    }
+  }
+
+  /// Shows a collection picker bottom sheet and returns the selected collection ID.
+  /// Returns null if user cancels or no collections exist.
+  Future<String?> _pickCollectionForResult() async {
     final collections = ref.read(collectionsProvider).valueOrNull;
     if (collections == null || collections.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                'Créez d\'abord une collection avant d\'ajouter des photos.'),
+                'Créez d\'abord une collection avant d\'ajouter des items.'),
           ),
         );
       }
-      return;
+      return null;
     }
 
     if (collections.length == 1) {
-      // Skip picker — go directly
-      context.push('/add-photo/${collections.first.id}');
-      return;
+      return collections.first.id;
     }
 
-    final chosen = await showModalBottomSheet<String>(
+    return showModalBottomSheet<String>(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(
@@ -424,7 +436,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text('Où ajouter la photo ?',
+              child: Text('Dans quelle collection ?',
                   style: TextStyle(fontSize: 13, color: Colors.grey)),
             ),
             Flexible(
@@ -443,9 +455,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
         ),
       ),
     );
-    if (chosen != null && mounted) {
-      context.push('/add-photo/$chosen');
-    }
   }
 }
 

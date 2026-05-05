@@ -288,6 +288,15 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen>
         BadgeChecker.afterAdd(context);
         context.pop();
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de l\'ajout : $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
