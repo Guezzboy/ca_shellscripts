@@ -13,6 +13,7 @@ import '../../../core/services/badge_checker.dart';
 import '../../../core/repositories/item_repository.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../../shared/widgets/error_retry.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../widgets/item_card.dart';
 import 'item_detail_screen.dart';
 
@@ -207,8 +208,7 @@ class _CollectionDetailScreenState
           ),
         ],
         body: itemsAsync.when(
-          loading: () =>
-              const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
+          loading: () => const _ShimmerGrid(),
           error: (e, _) => ErrorRetry(
             message: 'Erreur : $e',
             onRetry: () =>
@@ -807,6 +807,25 @@ class _BarButton extends StatelessWidget {
         icon: Icon(icon, size: 16),
         label: Text(label, style: const TextStyle(fontSize: 13)),
       ),
+    );
+  }
+}
+
+class _ShimmerGrid extends StatelessWidget {
+  const _ShimmerGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.7,
+      ),
+      itemCount: 9,
+      itemBuilder: (_, __) => const ShimmerItemCard(),
     );
   }
 }

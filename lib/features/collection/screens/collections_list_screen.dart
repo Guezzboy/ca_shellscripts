@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/collection_providers.dart' hide HomeStats;
 import '../../../shared/theme/app_theme.dart';
 import '../../../shared/widgets/error_retry.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../widgets/collection_card.dart';
 
 class CollectionsListScreen extends ConsumerWidget {
@@ -60,8 +61,7 @@ class CollectionsListScreen extends ConsumerWidget {
         ],
       ),
       body: collectionsAsync.when(
-        loading: () => const Center(
-            child: CircularProgressIndicator(strokeWidth: 1.5)),
+        loading: () => const _ShimmerLoading(),
         error: (e, _) => ErrorRetry(
           message: 'Erreur : $e',
           onRetry: () => ref.invalidate(sortedCollectionsProvider),
@@ -148,6 +148,18 @@ class CollectionsListScreen extends ConsumerWidget {
     if (confirmed == true) {
       await ref.read(collectionsProvider.notifier).delete(id);
     }
+  }
+}
+
+class _ShimmerLoading extends StatelessWidget {
+  const _ShimmerLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: 6,
+      itemBuilder: (_, __) => const ShimmerListTile(),
+    );
   }
 }
 

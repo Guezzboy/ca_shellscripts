@@ -6,6 +6,7 @@ import '../../../core/services/badge_service.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../../shared/utils/collection_emoji.dart';
 import '../../../shared/widgets/progress_ring.dart';
+import '../../../shared/widgets/shimmer_loading.dart';
 import '../widgets/object_card.dart';
 
 /// Home screen — data-driven with real progress ring and journal feed.
@@ -41,13 +42,16 @@ class _HomeContent extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _GreetingHeader(tokens: t)),
-        SliverToBoxAdapter(
-          child: _HeroSection(
-            tokens: t,
-            totalOwned: stats?.totalOwned ?? 0,
-            totalAll: stats?.totalItems ?? 1,
-          ),
-        ),
+        if (stats != null)
+          SliverToBoxAdapter(
+            child: _HeroSection(
+              tokens: t,
+              totalOwned: stats!.totalOwned,
+              totalAll: stats!.totalItems,
+            ),
+          )
+        else
+          const SliverToBoxAdapter(child: ShimmerHomeHero()),
         // ── per-collection progress ──
         if (stats != null && stats!.collections.isNotEmpty)
           SliverToBoxAdapter(
