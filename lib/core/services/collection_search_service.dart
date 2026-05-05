@@ -1,8 +1,4 @@
-import 'dart:convert';
-import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-// ── DTOs ──────────────────────────────────────────────────────────────────────
+// ── DTOs pour les résultats de recherche de collections ──────────────────────
 
 class CollectionMeta {
   final String id;
@@ -130,60 +126,4 @@ class CollectionSearchResult {
           'searchMs': meta.searchMs,
         },
       };
-}
-
-// ── Service ───────────────────────────────────────────────────────────────────
-
-class CollectionSearchService {
-  static const _defaultProxyUrl = 'http://10.0.2.2:3000';
-  static const _prefsKey = 'search_proxy_url';
-
-  final Dio _dio;
-
-  CollectionSearchService({Dio? dio})
-      : _dio = dio ?? Dio(BaseOptions(
-            connectTimeout: const Duration(seconds: 3),
-            receiveTimeout: const Duration(seconds: 8),
-            headers: {'Content-Type': 'application/json'},
-          ));
-
-  /// Retourne l'URL du proxy (depuis shared_preferences ou défaut).
-  Future<String> _proxyUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_prefsKey) ?? _defaultProxyUrl;
-  }
-
-  /// Vérifie si le proxy de recherche est disponible.
-  Future<bool> isProxyAvailable() async {
-    try {
-      final base = await _proxyUrl();
-      final resp = await _dio.get('$base/health',
-          options: Options(
-            sendTimeout: const Duration(seconds: 2),
-            receiveTimeout: const Duration(seconds: 2),
-          ));
-      return resp.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// Recherche une collection par nom.
-  /// Retourne null si le proxy est injoignable ou en cas d'erreur.
-  Future<CollectionSearchResult?> searchCollection(String query) async {
-    final base = await _proxyUrl();
-    try {
-      final resp = await _dio.post(
-        '$base/api/search-collection',
-        data: json.encode({'query': query.trim()}),
-      );
-      if (resp.statusCode == 200 && resp.data != null) {
-        return CollectionSearchResult.fromJson(
-            resp.data as Map<String, dynamic>);
-      }
-      return null;
-    } on DioException {
-      return null;
-    }
-  }
 }

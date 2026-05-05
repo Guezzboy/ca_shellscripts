@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/collection_providers.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/services/collection_export_service.dart';
@@ -79,8 +78,6 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text('Depuis une URL ou un fichier'),
             onTap: () => GoRouter.of(context).push('/download'),
           ),
-          const _RemoteUrlTile(),
-          const _ProxyUrlTile(),
           const Divider(),
           _SectionHeader('Sync', tokens),
           ListTile(
@@ -257,139 +254,6 @@ class _ThemeOption extends StatelessWidget {
       ),
     );
   }
-}
-
-class _RemoteUrlTile extends StatefulWidget {
-  const _RemoteUrlTile();
-
-  @override
-  State<_RemoteUrlTile> createState() => _RemoteUrlTileState();
-}
-
-class _RemoteUrlTileState extends State<_RemoteUrlTile> {
-  String _url = '';
-
-  @override
-  void initState() {
-    super.initState();
-    SharedPreferences.getInstance().then((p) {
-      if (mounted) {
-        setState(() => _url = p.getString('remote_collection_base_url') ?? '');
-      }
-    });
-  }
-
-  Future<void> _edit() async {
-    final ctrl = TextEditingController(text: _url);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('URL de données distantes'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
-            hintText: 'https://example.com/collections',
-            helperText: 'Le slug est ajouté : …/{nom-collection}.json',
-            helperMaxLines: 2,
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Annuler')),
-          ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
-              child: const Text('Enregistrer')),
-        ],
-      ),
-    );
-    if (result != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('remote_collection_base_url', result);
-      if (mounted) setState(() => _url = result);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-        leading: const Icon(Icons.cloud_outlined),
-        title: const Text('URL de données distantes'),
-        subtitle: Text(
-          _url.isEmpty ? 'Non configurée' : _url,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        onTap: _edit,
-      );
-}
-
-class _ProxyUrlTile extends StatefulWidget {
-  const _ProxyUrlTile();
-
-  @override
-  State<_ProxyUrlTile> createState() => _ProxyUrlTileState();
-}
-
-class _ProxyUrlTileState extends State<_ProxyUrlTile> {
-  String _url = '';
-
-  @override
-  void initState() {
-    super.initState();
-    SharedPreferences.getInstance().then((p) {
-      if (mounted) {
-        setState(() => _url = p.getString('search_proxy_url') ?? '');
-      }
-    });
-  }
-
-  Future<void> _edit() async {
-    final ctrl = TextEditingController(text: _url);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('URL du serveur proxy'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
-            hintText: 'http://localhost:3000',
-            helperText:
-                'Serveur Node.js local (server/index.js). Lance-le avec : node server/index.js',
-            helperMaxLines: 3,
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Annuler')),
-          ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
-              child: const Text('Enregistrer')),
-        ],
-      ),
-    );
-    if (result != null) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('search_proxy_url', result);
-      if (mounted) setState(() => _url = result);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-        leading: const Icon(Icons.travel_explore_outlined),
-        title: const Text('Serveur proxy (Coleka)'),
-        subtitle: Text(
-          _url.isEmpty ? 'Non configuré — recherche Coleka désactivée' : _url,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        onTap: _edit,
-      );
 }
 
 class _SectionHeader extends StatelessWidget {

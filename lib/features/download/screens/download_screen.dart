@@ -60,8 +60,6 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   String? _successMessage;
 
   // ── Search state ──
-  final _searchService = CollectionSearchService();
-  bool _proxyAvailable = false;
   bool _isSearching = false;
   List<CollectionSearchResult>? _searchResults;
   String? _searchError;
@@ -69,7 +67,6 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   @override
   void initState() {
     super.initState();
-    _checkProxy();
   }
 
   @override
@@ -316,29 +313,6 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_proxyAvailable)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, size: 16, color: Colors.orange.shade700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Recherche avancée indisponible. '
-                      'Utilise les collections populaires ou importe un fichier ci-dessous.',
-                      style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           Row(
             children: [
               Expanded(
@@ -407,13 +381,6 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
 
   // ── Search actions ───────────────────────────────────────────────────────
 
-  Future<void> _checkProxy() async {
-    final available = await _searchService.isProxyAvailable();
-    if (mounted) {
-      setState(() => _proxyAvailable = available);
-    }
-  }
-
   Future<void> _onSearch() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
@@ -424,30 +391,15 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
       _searchResults = null;
     });
 
-    if (_proxyAvailable) {
-      // Use the proxy for full search
-      final result = await _searchService.searchCollection(query);
-      if (!mounted) return;
-      setState(() {
-        _isSearching = false;
-        if (result != null) {
-          _searchResults = [result];
-        } else {
-          _searchError = 'Aucun résultat trouvé.';
-        }
-      });
-    } else {
-      // Local fallback: search popular collections by name
-      final results = await _localSearch(query);
-      if (!mounted) return;
-      setState(() {
-        _isSearching = false;
-        _searchResults = results;
-        if (results.isEmpty) {
-          _searchError = 'Aucune collection trouvée pour "$query".';
-        }
-      });
-    }
+    final results = await _localSearch(query);
+    if (!mounted) return;
+    setState(() {
+      _isSearching = false;
+      _searchResults = results;
+      if (results.isEmpty) {
+        _searchError = 'Aucune collection trouvée pour "$query".';
+      }
+    });
   }
 
   /// Search popular collections by name (works offline/without proxy).
