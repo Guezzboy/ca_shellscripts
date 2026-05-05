@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -365,13 +366,13 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
                     isDense: true,
                   ),
                   textInputAction: TextInputAction.search,
-                  onSubmitted: _proxyAvailable ? (_) => _onSearch() : null,
+                  onSubmitted: (_) => _onSearch(),
                   onChanged: (_) => setState(() {}),
                 ),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: (_isSearching || !_proxyAvailable) ? null : _onSearch,
+                onPressed: _isSearching ? null : _onSearch,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _tokens.accent,
                   foregroundColor: Colors.white,
@@ -423,18 +424,153 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
       _searchResults = null;
     });
 
-    final result = await _searchService.searchCollection(query);
-    if (!mounted) return;
+    if (_proxyAvailable) {
+      // Use the proxy for full search
+      final result = await _searchService.searchCollection(query);
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        if (result != null) {
+          _searchResults = [result];
+        } else {
+          _searchError = 'Aucun résultat trouvé.';
+        }
+      });
+    } else {
+      // Local fallback: search popular collections by name
+      final results = await _localSearch(query);
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _searchResults = results;
+        if (results.isEmpty) {
+          _searchError = 'Aucune collection trouvée pour "$query".';
+        }
+      });
+    }
+  }
 
-    setState(() {
-      _isSearching = false;
-      if (result != null) {
-        _searchResults = [result];
-      } else {
-        _searchError =
-            'Impossible de contacter le serveur de recherche. Vérifiez que le proxy est lancé.';
+  /// Search popular collections by name (works offline/without proxy).
+  Future<List<CollectionSearchResult>> _localSearch(String query) async {
+    final q = query.toLowerCase();
+    final matches = _popularCollections
+        .where((c) => c.name.toLowerCase().contains(q))
+        .toList();
+    if (matches.isEmpty) return [];
+
+    final results = <CollectionSearchResult>[];
+    final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 8)));
+
+    for (final match in matches) {
+      try {
+        final resp = await dio.get(match.url);
+        if (resp.data == null) continue;
+        final data = resp.data is String ? jsonDecode(resp.data) : resp.data;
+
+        // Parse the collection data into a CollectionSearchResult
+        final result = _parseJsonToSearchResult(data as Map<String, dynamic>);
+        if (result != null) results.add(result);
+      } catch (_) {
+        // Skip collections that fail to download
       }
-    });
+    }
+
+    return results;
+  }
+
+  /// Parse a downloaded JSON (popular collection format) into a search result.
+  /// Handles three formats:
+  /// - Flat: {name, items[]}
+  /// - Structured: {collection: {name, ...}, items[]}
+  /// - Amora: {collection: {nom, marque, licence, verres[]}}
+  CollectionSearchResult? _parseJsonToSearchResult(Map<String, dynamic> json) {
+    try {
+      // ── Amora format: {collection: {nom, marque, licence, verres[]}} ──
+      if (json.containsKey('collection')) {
+        final col = json['collection'] as Map<String, dynamic>;
+        if (col.containsKey('verres') && col.containsKey('nom')) {
+          return _parseAmoraFormat(col);
+        }
+      }
+
+      // ── Structured: {collection: {...}, items: [...]} ──
+      Map<String, dynamic> colData;
+      List<dynamic> itemsRaw;
+
+      if (json.containsKey('collection') && json.containsKey('items')) {
+        colData = json['collection'] as Map<String, dynamic>;
+        itemsRaw = json['items'] as List<dynamic>;
+      } else if (json.containsKey('name') && json.containsKey('items')) {
+        // ── Flat: {name, items[]} ──
+        colData = json;
+        itemsRaw = json['items'] as List<dynamic>;
+      } else {
+        return null;
+      }
+
+      final items = itemsRaw.map((i) {
+        final m = i is Map<String, dynamic> ? i : <String, dynamic>{};
+        return SearchResultItem.fromJson(m);
+      }).toList();
+
+      return CollectionSearchResult(
+        collection: CollectionMeta(
+          id: colData['id']?.toString() ?? colData['name']?.toString() ?? '',
+          name: colData['name']?.toString() ?? '',
+          description: colData['description']?.toString() ?? '',
+          totalItems: (colData['item_count'] as num?)?.toInt() ?? items.length,
+        ),
+        items: items,
+        meta: const SearchMeta(source: 'local', imageCompleteness: 1.0),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Parse Amora-specific format: {nom, marque, licence, verres[]}.
+  CollectionSearchResult _parseAmoraFormat(Map<String, dynamic> col) {
+    final name = col['nom'] as String? ?? '';
+    final marque = col['marque'] as String?;
+    final licence = col['licence'] as String?;
+    final displayName = [name, if (marque != null) marque].join(' — ');
+    final description = licence ?? '';
+
+    final rawItems = col['verres'] as List<dynamic>? ?? [];
+    final items = rawItems.map((raw) {
+      final map = raw is Map<String, dynamic> ? raw : <String, dynamic>{};
+      final artworkUrl = map['artwork_url'] as String?;
+      final spriteUrl = map['sprite_url'] as String?;
+      final imageUrl = (artworkUrl?.isNotEmpty ?? false) ? artworkUrl : spriteUrl;
+
+      return SearchResultItem(
+        id: map['id']?.toString() ?? '',
+        name: map['pokemon'] as String? ?? '',
+        subtitle: map['type'] is List
+            ? (map['type'] as List).join(', ')
+            : map['type']?.toString() ?? '',
+        year: map['annee_edition']?.toString(),
+        series: map['serie'] as String?,
+        description: [map['couleur_dominante']?.toString(),
+                      if (map['rare'] == true) 'Rare']
+            .whereType<String>()
+            .join(', '),
+        images: [if (imageUrl?.isNotEmpty ?? false) imageUrl!],
+      );
+    }).toList();
+
+    return CollectionSearchResult(
+      collection: CollectionMeta(
+        id: name,
+        name: displayName,
+        description: description,
+        totalItems: items.length,
+      ),
+      items: items,
+      meta: const SearchMeta(source: 'local', imageCompleteness: 1.0),
+    );
   }
 
   Future<void> _importResult(CollectionSearchResult result) async {
