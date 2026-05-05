@@ -403,10 +403,22 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   }
 
   /// Search popular collections by name (works offline/without proxy).
+  /// Strip diacritics so "pokémon" matches "pokemon".
+  String _normalize(String s) {
+    return s
+        .replaceAll(RegExp(r'[éèêë]'), 'e')
+        .replaceAll(RegExp(r'[àâä]'), 'a')
+        .replaceAll(RegExp(r'[ôö]'), 'o')
+        .replaceAll(RegExp(r'[ùûü]'), 'u')
+        .replaceAll(RegExp(r'[îï]'), 'i')
+        .replaceAll(RegExp(r'[ç]'), 'c')
+        .toLowerCase();
+  }
+
   Future<List<CollectionSearchResult>> _localSearch(String query) async {
-    final q = query.toLowerCase();
+    final q = _normalize(query);
     final matches = _popularCollections
-        .where((c) => c.name.toLowerCase().contains(q))
+        .where((c) => _normalize(c.name).contains(q))
         .toList();
     if (matches.isEmpty) return [];
 
