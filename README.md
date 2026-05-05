@@ -100,22 +100,13 @@ lib/
 
 ---
 
-## 🔍 Recherche de collections (proxy Node.js)
+## 🔍 Recherche de collections
 
-La fonction de recherche avancée dans l'écran **Découvrir** nécessite le serveur Node.js compagnon :
+L'écran **Découvrir** propose une recherche par nom parmi les collections populaires (Pokémon, Disney, FIFA, Nintendo, MTG). Les collections sont téléchargées directement depuis GitHub — aucune configuration ni serveur requis.
 
-```bash
-cd server
-node index.js
-```
-
-- Le proxy écoute sur `http://localhost:3000` et permet de rechercher des collections via scraping web.
-- **Sans le proxy**, l'écran reste utilisable : recherche locale dans les collections populaires, import par URL, import de fichier JSON local.
-- Les collections populaires (Pokémon, Disney, FIFA, Nintendo, MTG) sont disponibles directement via les URLs GitHub raw — aucune configuration requise.
-
-### Configuration du proxy
-
-L'URL du proxy est configurable via **Paramètres → URL proxy de recherche**. Par défaut `http://10.0.2.2:3000` (localhost depuis un émulateur Android). Pour un appareil physique, changez-la pour l'IP locale du serveur (ex: `http://192.168.1.183:3000`).
+- Tape un nom de collection → les résultats apparaissent avec le nombre d'items
+- Clique sur "Charger" → la collection est importée avec tous ses items
+- Tu peux aussi importer un fichier JSON local ou une URL personnalisée
 
 ---
 
@@ -165,7 +156,7 @@ Ces fichiers peuvent être hébergés sur **GitHub Pages** ou tout serveur stati
 
 - [x] **Phase 1 — Core** : grille Panini, ajout manuel, marqueur possédé, SQLite
 - [x] **Phase 2 — UX enrichie** : galerie swipeable, 3 états item (recherché/possédé), double CTA, scan ISBN, mode Vide-Grenier
-- [x] **Phase 3 — Import intelligent** : recherche automatique de collection via proxy Node.js (local + Coleka)
+- [x] **Phase 3 — Import intelligent** : recherche de collection par nom + GitHub, import JSON local/URL
 - [x] **Phase 4 — OCR** : Google ML Kit text recognition, suggestion auto du nom depuis les photos
 - [x] **Phase 5 — Sync** : export JSON avec état owned/wanted, partage via share sheet, import existant
 - [x] **Phase 6 — Accueil vivant** : progression réelle, journal d'activité (derniers ajouts, badges, résumé quotidien)
