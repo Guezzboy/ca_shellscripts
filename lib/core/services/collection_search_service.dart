@@ -138,11 +138,14 @@ class CollectionSearchService {
   static const _defaultProxyUrl = 'http://10.0.2.2:3000';
   static const _prefsKey = 'search_proxy_url';
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 3),
-    receiveTimeout: const Duration(seconds: 8),
-    headers: {'Content-Type': 'application/json'},
-  ));
+  final Dio _dio;
+
+  CollectionSearchService({Dio? dio})
+      : _dio = dio ?? Dio(BaseOptions(
+            connectTimeout: const Duration(seconds: 3),
+            receiveTimeout: const Duration(seconds: 8),
+            headers: {'Content-Type': 'application/json'},
+          ));
 
   /// Retourne l'URL du proxy (depuis shared_preferences ou défaut).
   Future<String> _proxyUrl() async {
