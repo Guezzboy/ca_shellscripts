@@ -100,6 +100,25 @@ lib/
 
 ---
 
+## 🔍 Recherche de collections (proxy Node.js)
+
+La fonction de recherche avancée dans l'écran **Découvrir** nécessite le serveur Node.js compagnon :
+
+```bash
+cd server
+node index.js
+```
+
+- Le proxy écoute sur `http://localhost:3000` et permet de rechercher des collections via scraping web.
+- **Sans le proxy**, l'écran reste utilisable : recherche locale dans les collections populaires, import par URL, import de fichier JSON local.
+- Les collections populaires (Pokémon, Disney, FIFA, Nintendo, MTG) sont disponibles directement via les URLs GitHub raw — aucune configuration requise.
+
+### Configuration du proxy
+
+L'URL du proxy est configurable via **Paramètres → URL proxy de recherche**. Par défaut `http://10.0.2.2:3000` (localhost depuis un émulateur Android). Pour un appareil physique, changez-la pour l'IP locale du serveur (ex: `http://192.168.1.183:3000`).
+
+---
+
 ## 📄 Format JSON des collections
 
 Les collections peuvent être importées via une URL ou un fichier `.json` local.  
